@@ -93,7 +93,7 @@ public class MainWindowViewModel : ReactiveObject
         if (_errored) return;
         Dispatcher.UIThread.InvokeAsync(async () =>
         {
-          string message = "Successfully installed Cosmo! You may have to restart your shell for changes to take effect." + (OperatingSystem.IsWindows() ? $"You must to add {absolutePath} to your PATH environment variable." : "");
+          string message = "Successfully installed Cosmo! You may have to restart your shell for changes to take effect." + (OperatingSystem.IsWindows() ? $"You must to add \"{absolutePath}\bin\" to your PATH environment variable." : "");
           await MessageBoxManager
             .GetMessageBoxStandardWindow("Installation Finished", message)
             .Show();
