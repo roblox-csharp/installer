@@ -9,7 +9,7 @@ namespace CosmoInstaller;
 
 public static class Installation
 {
-  private static readonly float _step = (1f / 10f) * 100;
+  private static readonly float _step = (1f / 13f) * 100;
   private static float progress = 0;
   private static Action<int>? _updateProgress;
   private static Action<string>? _updateTitle;
@@ -91,10 +91,13 @@ public static class Installation
       {
         Log("Installing Scoop...");
         ExecuteCommand("irm", "get.scoop.sh | iex");
+        StepProgress();
         ExecuteCommand("scoop", "bucket add crystal-preview https://github.com/neatorobito/scoop-crystal");
         Log("Installing C++ build tools...");
         ExecuteCommand("scoop", "install vs_2022_cpp_build_tools");
+        StepProgress();
         ExecuteCommand("scoop", "install crystal");
+        StepProgress();
         Log("Successfully installed Crystal via Scoop!...");
       }
       else if (OperatingSystem.IsLinux())
@@ -102,6 +105,12 @@ public static class Installation
       else if (OperatingSystem.IsMacOS())
         ExecuteCommand("brew", "install crystal");
 
+      if (!OperatingSystem.IsWindows())
+      {
+        StepProgress();
+        StepProgress();
+        StepProgress();
+      }
       Log("Successfully installed Crystal.");
     }
     else
