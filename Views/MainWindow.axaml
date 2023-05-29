@@ -10,7 +10,7 @@
         x:Class="CosmoInstaller.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/cosmo.png"
-        Title="CosmoInstaller">
+        Title="Cosmo Installer">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,

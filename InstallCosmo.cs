@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
-using Microsoft.Win32;
 
 namespace CosmoInstaller;
 
@@ -114,7 +113,9 @@ public static class Installation
     Log("Successfully built Cosmo.");
     Log("Adding Cosmo to PATH...");
 
-    AddToPath(path);
+    if (!OperatingSystem.IsWindows())
+      AddToPath(path);
+      
     StepProgress();
     Log("Successfully installed Cosmo.");
   }
@@ -134,28 +135,9 @@ public static class Installation
   {
     string binPath = Path.Combine(path, "bin");
     string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    string profilePath;
-    string pathUpdateCmd;
-
-    if (OperatingSystem.IsWindows())
-    {
-      string new_path = $"$env:PATH += \";{binPath}\"";
-      Environment.SetEnvironmentVariable("PATH", new_path, EnvironmentVariableTarget.Machine);
-      using (RegistryKey? key = Registry.LocalMachine.OpenSubKey("System\\CurrentControlSet\\Control\\Session Manager\\Environment", true))
-      {
-        if (key == null)
-          ShowErrorMessageBox($"Failed to find/access \"Environment\" registry key (run as administrator?)");
-        else
-          key.SetValue("PATH", new_path);
-      }
-    }
-    else
-    {
-      profilePath = Path.Combine(homeDir, ".bashrc");
-      pathUpdateCmd = $"export PATH=\"{binPath}:$PATH\"";
-      WriteProfile(profilePath, pathUpdateCmd);
-    }
-
+    string profilePath = Path.Combine(homeDir, ".bashrc");
+    string pathUpdateCmd = $"export PATH=\"{binPath}:$PATH\"";
+    WriteProfile(profilePath, pathUpdateCmd);
     Log("Successfully added Cosmo to your PATH.");
   }
 
@@ -231,8 +213,8 @@ public static class Installation
 
   private static void Log(string msg)
   {
-    Console.WriteLine(msg);
     _updateTitle!(msg);
+    Console.WriteLine(msg);
   }
 }
 
