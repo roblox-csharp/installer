@@ -12,16 +12,20 @@ public static class Installation
   private static readonly float _step = (1f / 9f) * 100;
   private static float progress = 0;
   private static Action<int>? _updateProgress;
+  private static Action<string>? _updateTitle;
 
-  public static void InstallCosmo(Action<int> updateProgress, string path)
-  {
+  public static void InstallCosmo(
+    Action<int> updateProgress,
+    Action<string> updateTitle,
+    string path
+  ) {
     _updateProgress = updateProgress;
+    _updateTitle = updateTitle;
 
-    Console.WriteLine(path);
-    Console.WriteLine("Creating installation environment...");
+    Log("Creating installation environment...");
     if (Directory.Exists(path))
     {
-      Console.WriteLine("Installation directory exists, skipping creation...");
+      Log("Installation directory exists, skipping creation...");
     }
     else
     {
@@ -37,7 +41,7 @@ public static class Installation
       }
     }
 
-    Console.WriteLine("Changing environment directory...");
+    Log("Changing environment directory...");
     StepProgress();
     try
     {
@@ -51,7 +55,7 @@ public static class Installation
     }
 
     StepProgress();
-    Console.WriteLine("Pulling repository...");
+    Log("Pulling repository...");
     string[] dirEntries;
     try
     {
@@ -76,21 +80,21 @@ public static class Installation
     }
 
     StepProgress();
-    Console.WriteLine("Fetching tags...");
+    Log("Fetching tags...");
     ExecuteGitCommand("fetch --tags", "Failed to fetch release tags");
 
     StepProgress();
-    Console.WriteLine("Fetching latest release...");
+    Log("Fetching latest release...");
     string latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
 
     StepProgress();
-    Console.WriteLine("Checking out latest release...");
+    Log("Checking out latest release...");
     ExecuteGitCommand($"checkout {latestTag}", "Failed to checkout the latest release");
 
     ProcessResult crystalCheckOutput = ExecuteCommand("crystal", "-v");
     if (crystalCheckOutput.ExitCode != 0)
     {
-      Console.WriteLine("Installing Crystal...");
+      Log("Installing Crystal...");
 
       string crystalInstallArgs;
       if (OperatingSystem.IsWindows())
@@ -108,30 +112,30 @@ public static class Installation
         crystalInstallArgs = "install crystal";
         ExecuteCommand("brew", crystalInstallArgs);
       }
-      Console.WriteLine("Successfully installed Crystal.");
+      Log("Successfully installed Crystal.");
     }
     else
     {
-      Console.WriteLine("Crystal is already installed, continuing...");
+      Log("Crystal is already installed, continuing...");
     }
 
     StepProgress();
 
-    Console.WriteLine("Building Cosmo...");
-    Console.WriteLine("- Installing dependencies...");
+    Log("Building Cosmo...");
+    Log("Installing dependencies...");
     ExecuteCommand("shards", "install");
     StepProgress();
 
-    Console.WriteLine("- Compiling...");
+    Log("Compiling...");
     ExecuteCommand("shards", "build --release");
     StepProgress();
 
-    Console.WriteLine("Successfully built Cosmo.");
-    Console.WriteLine("Adding Cosmo to PATH...");
+    Log("Successfully built Cosmo.");
+    Log("Adding Cosmo to PATH...");
 
     AddToPath(path);
     StepProgress();
-    Console.WriteLine("Successfully installed Cosmo.");
+    Log("Successfully installed Cosmo.");
   }
 
   private static string ExecuteGitCommand(string arguments, string errorMessage)
@@ -166,8 +170,7 @@ public static class Installation
     }
 
     WriteProfile(profilePath, pathUpdateCmd);
-    Console.WriteLine("Successfully added Cosmo to your PATH.");
-    Console.WriteLine("Please restart your shell for changes to take effect.");
+    Log("Successfully added Cosmo to your PATH.");
   }
 
   private static ProcessResult ExecuteCommand(string command, params string[] arguments)
@@ -220,6 +223,15 @@ public static class Installation
     }
   }
 
+  private static void StepProgress()
+  {
+    progress += _step;
+    if (_updateProgress == null)
+      throw new Exception("Attempt to call StepProgress() while _updateProgress is null");
+    else
+      _updateProgress((int)progress);
+  }
+
   private static void ShowErrorMessageBox(string message)
   {
     Dispatcher.UIThread.InvokeAsync(async () => {
@@ -231,13 +243,11 @@ public static class Installation
     });
   }
 
-  private static void StepProgress()
+  private static void Log(string msg)
   {
-    progress += _step;
-    if (_updateProgress == null)
-      throw new Exception("Attempt to call StepProgress() while _updateProgress is null");
-    else
-      _updateProgress((int)progress);
+    Console.WriteLine(msg);
+    if (_updateTitle != null)
+      _updateTitle(msg);
   }
 }
 

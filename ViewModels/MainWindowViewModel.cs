@@ -10,11 +10,25 @@ namespace CosmoInstaller.ViewModels
 {
   public class MainWindowViewModel : ReactiveObject
   {
-    private bool _selectDirectoryEnabled = true;
-    public bool SelectDirectoryEnabled
+    private string _titleText = "Welcome to the Cosmo installer!";
+    public string TitleText
     {
-      get => _selectDirectoryEnabled;
-      set => this.RaiseAndSetIfChanged(ref _selectDirectoryEnabled, value);
+      get => _titleText;
+      set => this.RaiseAndSetIfChanged(ref _titleText, value);
+    }
+
+    private bool _isNotInstalling = true;
+    public bool IsNotInstalling
+    {
+      get => _isNotInstalling;
+      set => this.RaiseAndSetIfChanged(ref _isNotInstalling, value);
+    }
+
+    private bool _selectDirectoryButtonEnabled = true;
+    public bool SelectDirectoryButtonEnabled
+    {
+      get => _selectDirectoryButtonEnabled;
+      set => this.RaiseAndSetIfChanged(ref _selectDirectoryButtonEnabled, value);
     }
 
     private string _selectedDirectory;
@@ -62,21 +76,28 @@ namespace CosmoInstaller.ViewModels
     private async void InstallCosmo()
     {
       ProgressBarVisible = true;
-      SelectDirectoryEnabled = false;
+      IsNotInstalling = false;
+      TitleText = "Installing...";
 
       await Task.Run(() => Installation.InstallCosmo(
         UpdateProgress,
+        UpdateTitle,
         Path.Combine(_selectedDirectory, ".cosmo")
       )).ContinueWith(prev => ProgressBarVisible = false)
         .ContinueWith(prev => {
           Dispatcher.UIThread.InvokeAsync(async () => {
             await MessageBoxManager
-              .GetMessageBoxStandardWindow("Completed", "Successfully installed Cosmo!")
+              .GetMessageBoxStandardWindow("Installation Finished", "Successfully installed Cosmo! You may have to restart your shell for changes to take effect.")
               .Show();
 
             Environment.Exit(0);
           });
         });
+    }
+
+    private void UpdateTitle(string title)
+    {
+      TitleText = title;
     }
 
     private void UpdateProgress(int progress)

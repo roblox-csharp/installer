@@ -23,7 +23,7 @@
             HorizontalAlignment="Center" VerticalAlignment="Center"
             x:Name="TitleLabel"
             FontSize="16" Margin="10"
-            Text="Welcome to the Cosmo installer!"
+            Text="{Binding TitleText}"
         />
         <ProgressBar
             x:Name="LoadingBar"
@@ -37,13 +37,14 @@
             HorizontalAlignment="Center" VerticalAlignment="Center"
             x:Name="InstallButton" Content="Install"
             Command="{Binding InstallCommand}"
+            IsVisible="{Binding IsNotInstalling}"
             Margin="10"
         />
         <Button
             HorizontalAlignment="Center" VerticalAlignment="Center"
             x:Name="SelectDirectoryButton" Content="Select directory"
             Click="SelectDirectoryButton_Click"
-            IsEnabled="{Binding SelectDirectoryEnabled}"
+            IsVisible="{Binding IsNotInstalling}"
             Margin="10"
         />
     </StackPanel>

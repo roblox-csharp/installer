@@ -30,6 +30,7 @@ namespace CosmoInstaller.Views
         viewModel.ProgressBarValue = progress;
     }
 
+    [System.Obsolete]
     private async void SelectDirectoryButton_Click(object sender, RoutedEventArgs e)
     {
       var viewModel = DataContext as MainWindowViewModel;
