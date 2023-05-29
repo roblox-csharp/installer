@@ -1,5 +1,8 @@
-﻿using ReactiveUI;
+﻿using Avalonia.Threading;
+using MessageBox.Avalonia;
+using ReactiveUI;
 using System;
+using System.IO;
 using System.Reactive;
 using System.Threading.Tasks;
 
@@ -52,10 +55,19 @@ namespace CosmoInstaller.ViewModels
     private async void InstallCosmo()
     {
       ProgressBarVisible = true;
+      await Task.Run(() => Installation.InstallCosmo(
+        UpdateProgress,
+        Path.Combine(_selectedDirectory, ".cosmo")
+      )).ContinueWith(prev => ProgressBarVisible = false)
+        .ContinueWith(prev => {
+          Dispatcher.UIThread.InvokeAsync(async () => {
+            await MessageBoxManager
+              .GetMessageBoxStandardWindow("Completed", "Successfully installed Cosmo!")
+              .Show();
 
-      await Task.Run(() => Installation.InstallCosmo(UpdateProgress, _selectedDirectory));
-
-      // ProgressBarVisible = false;
+            Environment.Exit(0);
+          });
+        });
     }
 
     private void UpdateProgress(int progress)

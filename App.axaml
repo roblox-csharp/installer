@@ -3,6 +3,6 @@
              x:Class="CosmoInstaller.App">
 
     <Application.Styles>
-        <FluentTheme Mode="Dark"/>
+        <SimpleTheme Mode="Dark"/>
     </Application.Styles>
 </Application>
