@@ -88,16 +88,32 @@ public static class Installation
     {
       Log("Installing Crystal...");
       if (OperatingSystem.IsWindows())
-        ExecuteCommand("powershell.exe", "-Command \"& { iex ((new-object net.webclient).DownloadString('https://dist.crystal-lang.org/install.ps1')) }\"");
+      {
+        Log("Installing Scoop...");
+        ExecuteCommand("irm", "get.scoop.sh | iex");
+        ExecuteCommand("scoop", "bucket add crystal-preview https://github.com/neatorobito/scoop-crystal");
+        Log("Installing C++ build tools...");
+        ExecuteCommand("scoop", "install vs_2022_cpp_build_tools");
+        ExecuteCommand("scoop", "install crystal");
+        Log("Successfully installed Crystal via Scoop!...");
+      }
       else if (OperatingSystem.IsLinux())
-        ExecuteCommand("sh", "-c", "curl -sSL https://dist.crystal-lang.org/rpm/setup.sh | sudo bash");
+        ExecuteCommand("curl", "-sSL https://dist.crystal-lang.org/rpm/setup.sh");
       else if (OperatingSystem.IsMacOS())
         ExecuteCommand("brew", "install crystal");
 
       Log("Successfully installed Crystal.");
     }
     else
+    {
       Log("Crystal is already installed, continuing...");
+      if (OperatingSystem.IsWindows())
+      {
+        Log("Updating Scoop + Crystal...");
+        ExecuteCommand("scoop", "update");
+        ExecuteCommand("scoop", "update crystal");
+      }
+    }
 
     StepProgress();
 
@@ -172,7 +188,8 @@ public static class Installation
       StandardError = error.ToString()
     };
 
-    if (result.ExitCode != 0 && !string.IsNullOrEmpty(result.StandardError))
+    Console.WriteLine(result.ToString());
+    if (result.ExitCode != 0)
       ShowErrorMessageBox($"Error executing '{command} {string.Join(' ', arguments)}': {result.StandardError}");
 
     return result;
