@@ -9,7 +9,7 @@ namespace CosmoInstaller;
 
 public static class Installation
 {
-  private static readonly float _step = (1f / 9f) * 100;
+  private static readonly float _step = (1f / 10f) * 100;
   private static float progress = 0;
   private static Action<int>? _updateProgress;
   private static Action<string>? _updateTitle;
@@ -24,9 +24,7 @@ public static class Installation
 
     Log("Creating installation environment...");
     if (Directory.Exists(path))
-    {
       Log("Installation directory exists, skipping creation...");
-    }
     else
     {
       try
@@ -35,9 +33,7 @@ public static class Installation
       }
       catch (Exception err)
       {
-        string msg = $"Failed to create directory (run as administrator?): {err.Message}";
-        ShowErrorMessageBox(msg);
-        return;
+        ShowErrorMessageBox($"Failed to create directory (run as administrator?): {err.Message}");
       }
     }
 
@@ -49,9 +45,7 @@ public static class Installation
     }
     catch (Exception err)
     {
-      string msg = $"Failed to change directory (run as administrator?): {err.Message}";
-      ShowErrorMessageBox(msg);
-      return;
+      ShowErrorMessageBox($"Failed to change directory (run as administrator?): {err.Message}");
     }
 
     StepProgress();
@@ -63,61 +57,43 @@ public static class Installation
     }
     catch (Exception err)
     {
-      string msg = $"Failed to read the directory (run as administrator?): {err.Message}";
-      ShowErrorMessageBox(msg);
+      ShowErrorMessageBox($"Failed to read the directory (run as administrator?): {err.Message}");
       return;
     }
 
     if (dirEntries.Length != 0)
-    {
-      string pullArgs = "pull origin master --allow-unrelated-histories";
-      ExecuteGitCommand(pullArgs, "Failed to pull from the repository (is git installed?)");
-    }
+      ExecuteGitCommand("pull origin master --allow-unrelated-histories", "Failed to pull from the repository (is git installed?)");
     else
-    {
-      string cloneArgs = "clone https://github.com/cosmo-lang/cosmo.git .";
-      ExecuteGitCommand(cloneArgs, "Failed to clone the repository (is git installed?)");
-    }
+      ExecuteGitCommand("clone https://github.com/cosmo-lang/cosmo.git .", "Failed to clone the repository (is git installed?)");
 
     StepProgress();
     Log("Fetching tags...");
     ExecuteGitCommand("fetch --tags", "Failed to fetch release tags");
-
     StepProgress();
+
     Log("Fetching latest release...");
     string latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
-
     StepProgress();
+
     Log("Checking out latest release...");
     ExecuteGitCommand($"checkout {latestTag}", "Failed to checkout the latest release");
+    StepProgress();
 
     ProcessResult crystalCheckOutput = ExecuteCommand("crystal", "-v");
     if (crystalCheckOutput.ExitCode != 0)
     {
       Log("Installing Crystal...");
-
-      string crystalInstallArgs;
       if (OperatingSystem.IsWindows())
-      {
-        crystalInstallArgs = "-Command \"& { iex ((new-object net.webclient).DownloadString('https://dist.crystal-lang.org/install.ps1')) }\"";
-        ExecuteCommand("powershell.exe", crystalInstallArgs);
-      }
+        ExecuteCommand("powershell.exe", "-Command \"& { iex ((new-object net.webclient).DownloadString('https://dist.crystal-lang.org/install.ps1')) }\"");
       else if (OperatingSystem.IsLinux())
-      {
-        crystalInstallArgs = "curl -sSL https://dist.crystal-lang.org/rpm/setup.sh | sudo bash";
-        ExecuteCommand("sh", "-c", crystalInstallArgs);
-      }
+        ExecuteCommand("sh", "-c", "curl -sSL https://dist.crystal-lang.org/rpm/setup.sh | sudo bash");
       else if (OperatingSystem.IsMacOS())
-      {
-        crystalInstallArgs = "install crystal";
-        ExecuteCommand("brew", crystalInstallArgs);
-      }
+        ExecuteCommand("brew", "install crystal");
+
       Log("Successfully installed Crystal.");
     }
     else
-    {
       Log("Crystal is already installed, continuing...");
-    }
 
     StepProgress();
 
@@ -127,7 +103,7 @@ public static class Installation
     StepProgress();
 
     Log("Compiling...");
-    ExecuteCommand("shards", "build --release");
+    ExecuteCommand("shards", $"build --release");
     StepProgress();
 
     Log("Successfully built Cosmo.");

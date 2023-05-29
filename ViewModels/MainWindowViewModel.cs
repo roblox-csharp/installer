@@ -66,7 +66,7 @@ namespace CosmoInstaller.ViewModels
       if (OperatingSystem.IsWindows())
         defaultDirectory = "C:\\Program Files";
       else if (OperatingSystem.IsLinux())
-        defaultDirectory = "~";
+        defaultDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
       else if (OperatingSystem.IsMacOS())
         defaultDirectory = "/Applications";
 
@@ -82,7 +82,7 @@ namespace CosmoInstaller.ViewModels
       await Task.Run(() => Installation.InstallCosmo(
         UpdateProgress,
         UpdateTitle,
-        Path.Combine(_selectedDirectory, ".cosmo")
+        Path.GetFullPath(Path.Combine(_selectedDirectory, ".cosmo"))
       )).ContinueWith(prev => ProgressBarVisible = false)
         .ContinueWith(prev => {
           Dispatcher.UIThread.InvokeAsync(async () => {
