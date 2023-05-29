@@ -10,6 +10,13 @@ namespace CosmoInstaller.ViewModels
 {
   public class MainWindowViewModel : ReactiveObject
   {
+    private bool _selectDirectoryEnabled = true;
+    public bool SelectDirectoryEnabled
+    {
+      get => _selectDirectoryEnabled;
+      set => this.RaiseAndSetIfChanged(ref _selectDirectoryEnabled, value);
+    }
+
     private string _selectedDirectory;
     public string SelectedDirectory
     {
@@ -55,6 +62,8 @@ namespace CosmoInstaller.ViewModels
     private async void InstallCosmo()
     {
       ProgressBarVisible = true;
+      SelectDirectoryEnabled = false;
+
       await Task.Run(() => Installation.InstallCosmo(
         UpdateProgress,
         Path.Combine(_selectedDirectory, ".cosmo")

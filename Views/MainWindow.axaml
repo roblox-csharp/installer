@@ -43,6 +43,7 @@
             HorizontalAlignment="Center" VerticalAlignment="Center"
             x:Name="SelectDirectoryButton" Content="Select directory"
             Click="SelectDirectoryButton_Click"
+            IsEnabled="{Binding SelectDirectoryEnabled}"
             Margin="10"
         />
     </StackPanel>
