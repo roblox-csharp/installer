@@ -1,8 +1,8 @@
-using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using CosmoInstaller.ViewModels;
 
 namespace CosmoInstaller.Views
 {
@@ -11,7 +11,7 @@ namespace CosmoInstaller.Views
   {
     public MainWindow()
     {
-      _selectedDirectory = GetDefaultInstallationDirectory();
+      DataContext = new MainWindowViewModel();
       InitializeComponent();
 #if DEBUG
       this.AttachDevTools();
@@ -23,34 +23,22 @@ namespace CosmoInstaller.Views
       AvaloniaXamlLoader.Load(this);
     }
 
-    private string _selectedDirectory;
-
-    private string GetDefaultInstallationDirectory()
+    private void UpdateProgress(int progress)
     {
-      string defaultDirectory = string.Empty;
-      if (OperatingSystem.IsWindows())
-        defaultDirectory = "C:\\Program Files\\Cosmo";
-      else if (OperatingSystem.IsLinux())
-        defaultDirectory = "~/.cosmo";
-      else if (OperatingSystem.IsMacOS())
-        defaultDirectory = "/Applications";
-
-      return defaultDirectory;
-    }
-
-    private void InstallButton_Click(object sender, RoutedEventArgs e)
-    {
-      // TODO: Implement the install logic here
+      var viewModel = DataContext as MainWindowViewModel;
+      if (viewModel != null)
+        viewModel.ProgressBarValue = progress;
     }
 
     private async void SelectDirectoryButton_Click(object sender, RoutedEventArgs e)
     {
+      var viewModel = DataContext as MainWindowViewModel;
       OpenFolderDialog dialog = new OpenFolderDialog();
       dialog.Title = "Select installation directory";
 
       string? selectedDirectory = await dialog.ShowAsync(this);
-      if (!string.IsNullOrEmpty(selectedDirectory))
-        _selectedDirectory = selectedDirectory;
+      if (!string.IsNullOrEmpty(selectedDirectory) && viewModel != null)
+        viewModel.SelectedDirectory = selectedDirectory;
     }
   }
 }

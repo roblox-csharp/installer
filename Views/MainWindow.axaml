@@ -19,8 +19,31 @@
     </Design.DataContext>
 
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="TitleLabel" FontSize="16" Margin="10" Text="Welcome to the Cosmo installer!" />
-        <Button HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="InstallButton" Content="Install" Click="InstallButton_Click" Margin="10" />
-        <Button HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="SelectDirectoryButton" Content="Select directory" Click="SelectDirectoryButton_Click" Margin="10" />
+        <TextBlock
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            x:Name="TitleLabel"
+            FontSize="16" Margin="10"
+            Text="Welcome to the Cosmo installer!"
+        />
+        <ProgressBar
+            x:Name="LoadingBar"
+            Minimum="0" Maximum="100" Value="{Binding ProgressBarValue}"
+            Width="200" Height="10" Margin="10"
+            IsIndeterminate="False"
+            IsVisible="{Binding ProgressBarVisible}"
+        />
+
+        <Button
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            x:Name="InstallButton" Content="Install"
+            Command="{Binding InstallCommand}"
+            Margin="10"
+        />
+        <Button
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            x:Name="SelectDirectoryButton" Content="Select directory"
+            Click="SelectDirectoryButton_Click"
+            Margin="10"
+        />
     </StackPanel>
 </Window>
