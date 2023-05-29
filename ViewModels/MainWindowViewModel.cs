@@ -54,6 +54,8 @@ namespace CosmoInstaller.ViewModels
 
     public ReactiveCommand<Unit, Unit> InstallCommand { get; }
 
+    private bool _errored = false;
+
     public MainWindowViewModel()
     {
       _selectedDirectory = GetDefaultInstallationDirectory();
@@ -82,9 +84,11 @@ namespace CosmoInstaller.ViewModels
       await Task.Run(() => Installation.InstallCosmo(
         UpdateProgress,
         UpdateTitle,
+        MarkErrored,
         Path.GetFullPath(Path.Combine(_selectedDirectory, ".cosmo"))
       )).ContinueWith(prev => ProgressBarVisible = false)
         .ContinueWith(prev => {
+          if (_errored) return;
           Dispatcher.UIThread.InvokeAsync(async () => {
             await MessageBoxManager
               .GetMessageBoxStandardWindow("Installation Finished", "Successfully installed Cosmo! You may have to restart your shell for changes to take effect.")
@@ -93,6 +97,11 @@ namespace CosmoInstaller.ViewModels
             Environment.Exit(0);
           });
         });
+    }
+
+    private void MarkErrored()
+    {
+      _errored = true;
     }
 
     private void UpdateTitle(string title)

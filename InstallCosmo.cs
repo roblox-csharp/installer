@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
+using Microsoft.Win32;
 
 namespace CosmoInstaller;
 
@@ -13,14 +14,18 @@ public static class Installation
   private static float progress = 0;
   private static Action<int>? _updateProgress;
   private static Action<string>? _updateTitle;
+  private static Action? _markErrored;
+  private static bool _errored = false;
 
   public static void InstallCosmo(
     Action<int> updateProgress,
     Action<string> updateTitle,
+    Action markErrored,
     string path
   ) {
     _updateProgress = updateProgress;
     _updateTitle = updateTitle;
+    _markErrored = markErrored;
 
     Log("Creating installation environment...");
     if (Directory.Exists(path))
@@ -119,9 +124,7 @@ public static class Installation
     ProcessResult result = ExecuteCommand("git", arguments.Split(' '));
     if (result.ExitCode != 0)
     {
-      string msg = $"{errorMessage}: {result.StandardError}";
-      ShowErrorMessageBox(msg);
-      Environment.Exit(1);
+      ShowErrorMessageBox($"{errorMessage}: {result.StandardError}");
     }
 
     return result.StandardOutput.Trim();
@@ -136,16 +139,23 @@ public static class Installation
 
     if (OperatingSystem.IsWindows())
     {
-      profilePath = Path.Combine(homeDir, "AppData", "Local", "Microsoft", "Windows", "PowerShell", "profile.ps1");
-      pathUpdateCmd = $"$env:PATH += \";{binPath}\"";
+      string new_path = $"$env:PATH += \";{binPath}\"";
+      Environment.SetEnvironmentVariable("PATH", new_path, EnvironmentVariableTarget.Machine);
+      using (RegistryKey? key = Registry.LocalMachine.OpenSubKey("System\\CurrentControlSet\\Control\\Session Manager\\Environment", true))
+      {
+        if (key == null)
+          ShowErrorMessageBox($"Failed to find/access \"Environment\" registry key (run as administrator?)");
+        else
+          key.SetValue("PATH", new_path);
+      }
     }
     else
     {
       profilePath = Path.Combine(homeDir, ".bashrc");
       pathUpdateCmd = $"export PATH=\"{binPath}:$PATH\"";
+      WriteProfile(profilePath, pathUpdateCmd);
     }
 
-    WriteProfile(profilePath, pathUpdateCmd);
     Log("Successfully added Cosmo to your PATH.");
   }
 
@@ -194,22 +204,22 @@ public static class Installation
     }
     catch (Exception e)
     {
-      string msg = $"Failed to write to shell profile: {e.Message}";
-      ShowErrorMessageBox(msg);
+      ShowErrorMessageBox($"Failed to write to shell profile: {e.Message}");
     }
   }
 
   private static void StepProgress()
   {
     progress += _step;
-    if (_updateProgress == null)
-      throw new Exception("Attempt to call StepProgress() while _updateProgress is null");
-    else
-      _updateProgress((int)progress);
+    _updateProgress!((int)progress);
   }
 
   private static void ShowErrorMessageBox(string message)
   {
+    if (_errored) return;
+
+    _errored = true;
+    _markErrored!();
     Dispatcher.UIThread.InvokeAsync(async () => {
       await MessageBoxManager
         .GetMessageBoxStandardWindow("Error", message)
@@ -222,8 +232,7 @@ public static class Installation
   private static void Log(string msg)
   {
     Console.WriteLine(msg);
-    if (_updateTitle != null)
-      _updateTitle(msg);
+    _updateTitle!(msg);
   }
 }
 
