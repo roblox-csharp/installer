@@ -123,9 +123,7 @@ public static class Installation
   {
     ProcessResult result = ExecuteCommand("git", arguments.Split(' '));
     if (result.ExitCode != 0)
-    {
       ShowErrorMessageBox($"{errorMessage}: {result.StandardError}");
-    }
 
     return result.StandardOutput.Trim();
   }
@@ -145,7 +143,7 @@ public static class Installation
     ProcessStartInfo startInfo = new ProcessStartInfo
     {
       FileName = command,
-      Arguments = string.Join(" ", arguments),
+      Arguments = string.Join(' ', arguments),
       RedirectStandardOutput = true,
       RedirectStandardError = true,
       UseShellExecute = false,
@@ -162,18 +160,22 @@ public static class Installation
 
     process.OutputDataReceived += (s, e) => output.AppendLine(e.Data);
     process.ErrorDataReceived += (s, e) => error.AppendLine(e.Data);
-
     process.Start();
     process.BeginOutputReadLine();
     process.BeginErrorReadLine();
     process.WaitForExit();
 
-    return new ProcessResult
+    var result = new ProcessResult
     {
       ExitCode = process.ExitCode,
       StandardOutput = output.ToString(),
       StandardError = error.ToString()
     };
+
+    if (result.ExitCode != 0 && !string.IsNullOrEmpty(result.StandardError))
+      ShowErrorMessageBox($"Error executing '{command} {string.Join(' ', arguments)}': {result.StandardError}");
+
+    return result;
   }
 
   private static void WriteProfile(string path, string pathUpdateCmd)
