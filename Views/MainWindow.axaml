@@ -9,7 +9,7 @@
         x:CompileBindings="True"
         x:Class="CosmoInstaller.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/cosmo.png"
         Title="CosmoInstaller">
 
     <Design.DataContext>
