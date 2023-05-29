@@ -112,10 +112,9 @@ public static class Installation
 
     Log("Successfully built Cosmo.");
     Log("Adding Cosmo to PATH...");
-
     if (!OperatingSystem.IsWindows())
       AddToPath(path);
-      
+
     StepProgress();
     Log("Successfully installed Cosmo.");
   }
