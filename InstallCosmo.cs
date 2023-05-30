@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Principal;
 using System.Text;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
@@ -26,11 +27,16 @@ public static class Installation
     _updateTitle = updateTitle;
     _markErrored = markErrored;
 
+    if (OperatingSystem.IsWindows() && !IsAdmin())
+    {
+      ShowErrorMessageBox($"Failed to install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
+      return;
+    }
+
     Log("Creating installation environment...");
     if (Directory.Exists(path))
       Log("Installation directory exists, skipping creation...");
     else
-    {
       try
       {
         Directory.CreateDirectory(path);
@@ -38,8 +44,8 @@ public static class Installation
       catch (Exception err)
       {
         ShowErrorMessageBox($"Failed to create directory (run as administrator?): {err.Message}");
+        return;
       }
-    }
 
     Log("Changing environment directory...");
     StepProgress();
@@ -50,6 +56,7 @@ public static class Installation
     catch (Exception err)
     {
       ShowErrorMessageBox($"Failed to change directory (run as administrator?): {err.Message}");
+      return;
     }
 
     StepProgress();
@@ -76,15 +83,15 @@ public static class Installation
     StepProgress();
 
     Log("Fetching latest release...");
-    string latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
+    string? latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
     StepProgress();
 
     Log("Checking out latest release...");
-    ExecuteGitCommand($"checkout {latestTag}", "Failed to checkout the latest release");
+    ExecuteGitCommand($"checkout {latestTag!}", "Failed to checkout the latest release");
     StepProgress();
 
-    ProcessResult crystalCheckOutput = ExecuteCommand("crystal", "-v");
-    if (crystalCheckOutput.ExitCode != 0)
+    ProcessResult? crystalCheckOutput = ExecuteCommand("crystal", "-v");
+    if (crystalCheckOutput != null && crystalCheckOutput.ExitCode != 0)
     {
       Log("Installing Crystal...");
       if (OperatingSystem.IsWindows())
@@ -144,13 +151,35 @@ public static class Installation
     Log("Successfully installed Cosmo.");
   }
 
-  private static string ExecuteGitCommand(string arguments, string errorMessage)
+  private static bool IsAdmin()
   {
-    ProcessResult result = ExecuteCommand("git", arguments.Split(' '));
-    if (result.ExitCode != 0)
+    bool isAdmin;
+    try
+    {
+      WindowsIdentity user = WindowsIdentity.GetCurrent();
+      WindowsPrincipal principal = new WindowsPrincipal(user);
+      isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+    catch (UnauthorizedAccessException ex)
+    {
+      isAdmin = false;
+    }
+    catch (Exception ex)
+    {
+      isAdmin = false;
+    }
+    return isAdmin;
+  }
+  private static string? ExecuteGitCommand(string arguments, string errorMessage)
+  {
+    ProcessResult? result = ExecuteCommand("git", arguments.Split(' '));
+    if (result != null && result.ExitCode != 0)
+    {
       ShowErrorMessageBox($"{errorMessage}: {result.StandardError}");
+      return null;
+    }
 
-    return result.StandardOutput.Trim();
+    return result?.StandardOutput.Trim();
   }
 
   private static void AddToPath(string path)
@@ -163,7 +192,7 @@ public static class Installation
     Log("Successfully added Cosmo to your PATH.");
   }
 
-  private static ProcessResult ExecuteCommand(string command, params string[] arguments)
+  private static ProcessResult? ExecuteCommand(string command, params string[] arguments)
   {
     ProcessStartInfo startInfo = new ProcessStartInfo
     {
@@ -197,9 +226,11 @@ public static class Installation
       StandardError = error.ToString()
     };
 
-    Console.WriteLine(result.ToString());
     if (result.ExitCode != 0)
+    {
       ShowErrorMessageBox($"Error executing '{command} {string.Join(' ', arguments)}': {result.StandardError}");
+      return null;
+    }
 
     return result;
   }
