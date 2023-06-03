@@ -1,5 +1,4 @@
-﻿using Avalonia.Threading;
-using MessageBox.Avalonia;
+﻿using MessageBox.Avalonia;
 using ReactiveUI;
 using System;
 using System.IO;
@@ -60,6 +59,7 @@ public class MainWindowViewModel : ReactiveObject
   {
     _selectedDirectory = GetDefaultInstallationDirectory();
     InstallCommand = ReactiveCommand.Create(InstallCosmo);
+    Console.WriteLine("Initialized app.");
   }
 
   private string GetDefaultInstallationDirectory()
@@ -87,20 +87,17 @@ public class MainWindowViewModel : ReactiveObject
       UpdateTitle,
       MarkErrored,
       absolutePath
-    )).ContinueWith(prev => ProgressBarVisible = false)
-      .ContinueWith(prev =>
-      {
-        if (_errored) return;
-        Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-          string message = "Successfully installed Cosmo! You may have to restart your shell for changes to take effect." + (OperatingSystem.IsWindows() ? $"\nYou must to add \"{absolutePath}\\bin\" to your PATH environment variable." : "");
-          await MessageBoxManager
-            .GetMessageBoxStandardWindow("Installation Finished", message)
-            .Show();
+    ));
 
-          Environment.Exit(0);
-        });
-      });
+    ProgressBarVisible = false;
+    if (_errored) return;
+
+    string message = "Successfully installed Cosmo! You may have to restart your shell for changes to take effect." + (OperatingSystem.IsWindows() ? $"\nYou must to add \"{absolutePath}\\bin\" to your PATH environment variable." : "");
+    await MessageBoxManager
+      .GetMessageBoxStandardWindow("Installation Finished", message)
+      .Show();
+
+    Environment.Exit(0);
   }
 
   private void MarkErrored()

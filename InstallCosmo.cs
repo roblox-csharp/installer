@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using System.Text;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
 
@@ -28,10 +29,7 @@ public static class Installation
     _markErrored = markErrored;
 
     if (OperatingSystem.IsWindows() && !IsAdmin())
-    {
       ShowErrorMessageBox($"Failed to install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
-      return;
-    }
 
     Log("Creating installation environment...");
     if (Directory.Exists(path))
@@ -44,7 +42,6 @@ public static class Installation
       catch (Exception err)
       {
         ShowErrorMessageBox($"Failed to create directory (run as administrator?): {err.Message}");
-        return;
       }
 
     Log("Changing environment directory...");
@@ -56,7 +53,6 @@ public static class Installation
     catch (Exception err)
     {
       ShowErrorMessageBox($"Failed to change directory (run as administrator?): {err.Message}");
-      return;
     }
 
     StepProgress();
@@ -65,17 +61,15 @@ public static class Installation
     try
     {
       dirEntries = Directory.GetFileSystemEntries(".");
+      if (dirEntries.Length != 0)
+        ExecuteGitCommand("pull origin master --allow-unrelated-histories", "Failed to pull from the repository (is git installed?)");
+      else
+        ExecuteGitCommand("clone https://github.com/cosmo-lang/cosmo.git .", "Failed to clone the repository (is git installed?)");
     }
     catch (Exception err)
     {
       ShowErrorMessageBox($"Failed to read the directory (run as administrator?): {err.Message}");
-      return;
     }
-
-    if (dirEntries.Length != 0)
-      ExecuteGitCommand("pull origin master --allow-unrelated-histories", "Failed to pull from the repository (is git installed?)");
-    else
-      ExecuteGitCommand("clone https://github.com/cosmo-lang/cosmo.git .", "Failed to clone the repository (is git installed?)");
 
     StepProgress();
     Log("Fetching tags...");
@@ -83,34 +77,37 @@ public static class Installation
     StepProgress();
 
     Log("Fetching latest release...");
-    string? latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
+    string latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
     StepProgress();
 
     Log("Checking out latest release...");
-    ExecuteGitCommand($"checkout {latestTag!}", "Failed to checkout the latest release");
+    string result = ExecuteGitCommand($"checkout {latestTag}", "Failed to checkout the latest release");
+    // ShowErrorMessageBox(result)
     StepProgress();
 
-    ProcessResult? crystalCheckOutput = ExecuteCommand("crystal", "-v");
-    if (crystalCheckOutput != null && crystalCheckOutput.ExitCode != 0)
+    Log("Checking for Crystal installation...");
+    ProcessResult crystalCheckOutput = ExecuteCommand(null, "crystal", "-v");
+    if (crystalCheckOutput.ExitCode != 0)
     {
       Log("Installing Crystal...");
       if (OperatingSystem.IsWindows())
       {
         Log("Installing Scoop...");
-        ExecuteCommand("irm", "get.scoop.sh | iex");
+        ExecuteCommand("Failed to install Scoop", "irm", "get.scoop.sh", "|", "iex");
         StepProgress();
-        ExecuteCommand("scoop", "bucket add crystal-preview https://github.com/neatorobito/scoop-crystal");
+        Log("Adding Crystal bucket...");
+        ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket", "add", "crystal-preview", "https://github.com/neatorobito/scoop-crystal");
         Log("Installing C++ build tools...");
-        ExecuteCommand("scoop", "install vs_2022_cpp_build_tools");
+        ExecuteCommand("Failed to install C++ build tools", "scoop", "install", "vs_2022_cpp_build_tools");
         StepProgress();
-        ExecuteCommand("scoop", "install crystal");
+        ExecuteCommand("Failed to install Crystal bucket", "scoop", "install", "crystal");
         StepProgress();
         Log("Successfully installed Crystal via Scoop!...");
       }
       else if (OperatingSystem.IsLinux())
-        ExecuteCommand("curl", "-sSL https://dist.crystal-lang.org/rpm/setup.sh");
+        ExecuteCommand("Failed to install Crystal", "curl", "-sSL", "https://dist.crystal-lang.org/rpm/setup.sh");
       else if (OperatingSystem.IsMacOS())
-        ExecuteCommand("brew", "install crystal");
+        ExecuteCommand("Failed to install Crystal", "brew", "install", "crystal");
 
       if (!OperatingSystem.IsWindows())
       {
@@ -126,8 +123,9 @@ public static class Installation
       if (OperatingSystem.IsWindows())
       {
         Log("Updating Scoop + Crystal...");
-        ExecuteCommand("scoop", "update");
-        ExecuteCommand("scoop", "update crystal");
+        ExecuteCommand("Failed to update Scoop", "scoop", "update");
+        ExecuteCommand("Failed to update Crystal bucket", "scoop", "update", "crystal");
+        // maybe dont terminate installation if it fails to update
       }
     }
 
@@ -135,15 +133,14 @@ public static class Installation
 
     Log("Building Cosmo...");
     Log("Installing dependencies...");
-    ExecuteCommand("shards", "install");
+    ExecuteCommand("Failed to install Cosmo's dependencies", "shards", "install");
     StepProgress();
 
     Log("Compiling...");
-    ExecuteCommand("shards", $"build --release");
+    ExecuteCommand("Failed to build Cosmo", "shards", $"build --release");
     StepProgress();
 
     Log("Successfully built Cosmo.");
-    Log("Adding Cosmo to PATH...");
     if (!OperatingSystem.IsWindows())
       AddToPath(path);
 
@@ -170,20 +167,16 @@ public static class Installation
     }
     return isAdmin;
   }
-  private static string? ExecuteGitCommand(string arguments, string errorMessage)
+  private static string ExecuteGitCommand(string arguments, string errorMessage)
   {
-    ProcessResult? result = ExecuteCommand("git", arguments.Split(' '));
-    if (result != null && result.ExitCode != 0)
-    {
-      ShowErrorMessageBox($"{errorMessage}: {result.StandardError}");
-      return null;
-    }
-
-    return result?.StandardOutput.Trim();
+    ProcessResult result = ExecuteCommand(errorMessage, "git", arguments.Split(' '));
+    return result.StandardOutput.Trim();
   }
 
   private static void AddToPath(string path)
   {
+    if (_errored) return;
+    Log("Adding Cosmo to PATH...");
     string binPath = Path.Combine(path, "bin");
     string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     string profilePath = Path.Combine(homeDir, ".bashrc");
@@ -192,7 +185,7 @@ public static class Installation
     Log("Successfully added Cosmo to your PATH.");
   }
 
-  private static ProcessResult? ExecuteCommand(string command, params string[] arguments)
+  private static ProcessResult ExecuteCommand(string? errorMessage, string command, params string[] arguments)
   {
     ProcessStartInfo startInfo = new ProcessStartInfo
     {
@@ -226,17 +219,15 @@ public static class Installation
       StandardError = error.ToString()
     };
 
-    if (result.ExitCode != 0)
-    {
-      ShowErrorMessageBox($"Error executing '{command} {string.Join(' ', arguments)}': {result.StandardError}");
-      return null;
-    }
+    if (result.ExitCode != 0 && errorMessage != null)
+      ShowErrorMessageBox($"{errorMessage}: {result.StandardError}");
 
     return result;
   }
 
   private static void WriteProfile(string path, string pathUpdateCmd)
   {
+    if (_errored) return;
     try
     {
       using (StreamWriter file = File.AppendText(path))
@@ -250,17 +241,20 @@ public static class Installation
 
   private static void StepProgress()
   {
+    if (_errored) return;
     progress += _step;
     _updateProgress!((int)progress);
   }
 
-  private static void ShowErrorMessageBox(string message)
+  private static async void ShowErrorMessageBox(string message)
   {
     if (_errored) return;
 
     _errored = true;
     _markErrored!();
-    Dispatcher.UIThread.InvokeAsync(async () => {
+    _updateTitle!("Error!");
+    await Dispatcher.UIThread.InvokeAsync(async () =>
+    {
       await MessageBoxManager
         .GetMessageBoxStandardWindow("Error", message)
         .Show();
@@ -271,6 +265,7 @@ public static class Installation
 
   private static void Log(string msg)
   {
+    if (_errored) return;
     _updateTitle!(msg);
     Console.WriteLine(msg);
   }
