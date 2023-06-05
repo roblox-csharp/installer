@@ -31,6 +31,7 @@ public static class Installation
     if (OperatingSystem.IsWindows() && !IsAdmin())
       ShowErrorMessageBox($"Failed to install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
 
+    path = Path.GetFullPath(path);
     Log("Creating installation environment...");
     if (Directory.Exists(path))
       Log("Installation directory exists, skipping creation...");
@@ -82,7 +83,6 @@ public static class Installation
 
     Log("Checking out latest release...");
     string result = ExecuteGitCommand($"checkout {latestTag}", "Failed to checkout the latest release");
-    // ShowErrorMessageBox(result)
     StepProgress();
 
     Log("Checking for Crystal installation...");
