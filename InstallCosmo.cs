@@ -296,7 +296,7 @@ public static class Installation
   {
     if (_errored) return;
     _updateTitle!(msg);
-    System.Diagnostics.Debug.WriteLine(msg);
+    Console.WriteLine(msg);
   }
 }
 
