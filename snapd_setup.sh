@@ -1,4 +1,4 @@
-#!/bin/sudo bash
+#!/bin/bash
 
 snap_directory="/snap"
 snapd_directory="/var/lib/snapd/snap"
@@ -11,3 +11,4 @@ fi
 
 # Create symbolic link from /snap to /var/lib/snapd/snap
 ln -s "$snapd_directory" "$snap_directory"
+snap install crystal --classic

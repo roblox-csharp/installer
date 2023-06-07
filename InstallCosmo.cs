@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using System.Text;
-using System.Threading.Tasks;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
 
@@ -13,7 +12,7 @@ namespace CosmoInstaller;
 public static class Installation
 {
   private static readonly float _step = (1f / 13f) * 100;
-  private static float progress = 0;
+  private static float _progress = 0;
   private static Action<int>? _updateProgress;
   private static Action<string>? _updateTitle;
   private static Action? _markErrored;
@@ -96,60 +95,59 @@ public static class Installation
     {
       crystalCheckOutput = ExecuteCommand(null, "crystal", "-v");
     }
-    catch (Exception) {} // shut up exceptions of not being found
-    finally
+    catch (Win32Exception) // shut up exceptions saying not found
     {
-      if (crystalCheckOutput == null || crystalCheckOutput.ExitCode != 0)
+    }
+
+    if (crystalCheckOutput == null || crystalCheckOutput.ExitCode != 0)
+    {
+      Log("Installing Crystal...");
+      if (OperatingSystem.IsWindows())
       {
-        Log("Installing Crystal...");
-        if (OperatingSystem.IsWindows())
-        {
-          Log("Installing Scoop...");
-          ExecuteCommand("Failed to set execution policy", "Set-ExecutionPolicy", "RemoteSigned -Scope CurrentUser");
-          ExecuteCommand("Failed to install Scoop", "powershell.exe", "-c \"irm get.scoop.sh | iex\"");
-          StepProgress();
-          Log("Adding Crystal bucket...");
-          ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket add crystal-preview", "https://github.com/neatorobito/scoop-crystal");
-          Log("Installing C++ build tools...");
-          ExecuteCommand("Failed to install C++ build tools", "scoop", "install vs_2022_cpp_build_tools");
-          StepProgress();
-          ExecuteCommand("Failed to install Crystal bucket", "scoop", "install crystal");
-          StepProgress();
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-          ExecuteCommand("Failed to install Crystal: \nSnapcraft is not installed, but is required to install Crystal for Linux. \nIf you don't want to use Snapcraft, please manually install Crystal.", "snap");
-
-          string scriptPath = Path.Combine(installerPath, "snapd_setup.sh");
-          ExecuteCommand("Failed to chmod Snapcraft setup script", "chmod", "+x", scriptPath);
-          StepProgress();
-          ExecuteCommand("Failed to setup", "pkexec", "--disable-internal-agent", scriptPath);
-          StepProgress();
-          ExecuteCommand("Failed to execute 'sudo snap install crystal'", "sudo", "snap install crystal --classic");
-          StepProgress();
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-          ExecuteCommand("Failed to install Crystal", "pkexec", "--disable-internal-agent", "brew install crystal");
-          StepProgress();
-          StepProgress();
-          StepProgress();
-        }
-
-        Log("Crystal has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell first.");
-        _finished = true;
-        _markFinished!();
+        Log("Installing Scoop...");
+        ExecuteCommand("Failed to set execution policy", "Set-ExecutionPolicy", "RemoteSigned -Scope CurrentUser");
+        ExecuteCommand("Failed to install Scoop", "powershell.exe", "-c \"irm get.scoop.sh | iex\"");
+        StepProgress();
+        Log("Adding Crystal bucket...");
+        ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket add crystal-preview", "https://github.com/neatorobito/scoop-crystal");
+        Log("Installing C++ build tools...");
+        ExecuteCommand("Failed to install C++ build tools", "scoop", "install vs_2022_cpp_build_tools");
+        StepProgress();
+        ExecuteCommand("Failed to install Crystal bucket", "scoop", "install crystal");
+        StepProgress();
       }
-      else
+      else if (OperatingSystem.IsLinux())
       {
-        Log("Crystal is already installed, continuing...");
-        if (OperatingSystem.IsWindows())
-        {
-          Log("Updating Scoop + Crystal...");
-          ExecuteCommand("Failed to update Scoop", "scoop", "update");
-          ExecuteCommand("Failed to update Crystal bucket", "scoop", "update crystal");
-          // maybe dont terminate installation if it fails to update
-        }
+        ExecuteCommand("Failed to install Crystal: \nSnapcraft is not installed, but is required to install Crystal for Linux. \nIf you don't want to use Snapcraft, please manually install Crystal.", "snap");
+        StepProgress();
+
+        string scriptPath = Path.Combine(installerPath, "snapd_setup.sh");
+        ExecuteCommand("Failed to chmod Snapcraft setup script", "chmod", "+x", scriptPath);
+        StepProgress();
+        ExecuteCommand("Failed to setup", "pkexec", "--disable-internal-agent",  scriptPath);
+        StepProgress();
+      }
+      else if (OperatingSystem.IsMacOS())
+      {
+        ExecuteCommand("Failed to install Crystal", "pkexec", "--disable-internal-agent", "brew install crystal");
+        StepProgress();
+        StepProgress();
+        StepProgress();
+      }
+
+      Log("Crystal has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even your machine.");
+      _finished = true;
+      _markFinished!();
+    }
+    else
+    {
+      Log("Crystal is already installed, continuing...");
+      if (OperatingSystem.IsWindows())
+      {
+        Log("Updating Scoop + Crystal...");
+        ExecuteCommand("Failed to update Scoop", "scoop", "update");
+        ExecuteCommand("Failed to update Crystal bucket", "scoop", "update crystal");
+        // maybe dont terminate installation if it fails to update
       }
     }
 
@@ -161,7 +159,7 @@ public static class Installation
     ExecuteCommand("Failed to install Cosmo dependencies", "shards", "install");
     StepProgress();
 
-    Log("Compiling...");
+    Log("Compiling... (this may take a while)");
     ExecuteCommand("Failed to build Cosmo", "shards", "build --release");
     StepProgress();
 
@@ -272,8 +270,8 @@ public static class Installation
   private static void StepProgress()
   {
     if (_errored) return;
-    progress += _step;
-    _updateProgress!((int)progress);
+    _progress += _step;
+    _updateProgress!((int)_progress);
   }
 
   private static void ShowErrorMessageBox(string message)

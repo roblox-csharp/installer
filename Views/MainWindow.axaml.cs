@@ -7,6 +7,8 @@ namespace CosmoInstaller.Views;
 
 public partial class MainWindow : Window
 {
+  new MainWindowViewModel? DataContext { get; set; }
+
   public MainWindow()
   {
     DataContext = new MainWindowViewModel();
@@ -18,20 +20,18 @@ public partial class MainWindow : Window
 
   private void UpdateProgress(int progress)
   {
-    var viewModel = DataContext as MainWindowViewModel;
-    if (viewModel != null)
-      viewModel.ProgressBarValue = progress;
+    if (DataContext != null)
+      DataContext.ProgressBarValue = progress;
   }
 
   [System.Obsolete]
   private async void SelectDirectoryButton_Click(object sender, RoutedEventArgs e)
   {
-    var viewModel = DataContext as MainWindowViewModel;
     OpenFolderDialog dialog = new OpenFolderDialog();
     dialog.Title = "Select installation directory";
 
     string? selectedDirectory = await dialog.ShowAsync(this);
-    if (!string.IsNullOrEmpty(selectedDirectory) && viewModel != null)
-      viewModel.SelectedDirectory = selectedDirectory;
+    if (!string.IsNullOrEmpty(selectedDirectory) && DataContext != null)
+      DataContext.SelectedDirectory = selectedDirectory;
   }
 }

@@ -1,8 +1,11 @@
 ﻿using Avalonia.Threading;
+using MessageBox.Avalonia;
 using ReactiveUI;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reactive;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace CosmoInstaller.ViewModels;
@@ -90,17 +93,35 @@ public class MainWindowViewModel : ReactiveObject
     IsNotInstalling = false;
     TitleText = "Installing...";
 
-    string fullCurrentDir = Path.GetFullPath(Directory.GetCurrentDirectory());
+    string fullCurrentDir = Path.GetFullPath(Path.GetDirectoryName(Path.GetDirectoryName(new StackTrace(true).GetFrame(0)!.GetFileName())!)!);
     string fullSelectedDir = Path.GetFullPath(_selectedDirectory);
     string absolutePath = Path.GetFullPath(Path.Combine(fullSelectedDir, (OperatingSystem.IsWindows() ? "" : ".") + "cosmo"));
-    await Task.Run(() => Installation.InstallCosmo(
-      UpdateProgress,
-      UpdateTitle,
-      MarkErrored,
-      MarkFinished,
-      absolutePath,
-      fullCurrentDir
-    ));
+
+    try
+    {
+      await Task.Run(() => Installation.InstallCosmo(
+        UpdateProgress,
+        UpdateTitle,
+        MarkErrored,
+        MarkFinished,
+        absolutePath,
+        fullCurrentDir
+      ));
+    }
+    catch (Exception err)
+    {
+      MarkErrored();
+      UpdateTitle("Error!");
+
+      await Dispatcher.UIThread.InvokeAsync(() =>
+      {
+        MessageBoxManager
+          .GetMessageBoxStandardWindow("Error", err.Message)
+          .Show()
+          .ContinueWith(_ => Environment.Exit(1));
+      });
+    }
+
 
     ProgressBarVisible = false;
     if (_errored) return;
