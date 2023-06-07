@@ -106,8 +106,6 @@ public static class Installation
       Log("Installing Crystal...");
       if (OperatingSystem.IsWindows())
       {
-
-
         Log("Checking for Scoop installation...");
         ProcessResult? scoopCheckOutput = null;
         try
@@ -128,6 +126,7 @@ public static class Installation
           Log("Scoop has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even your machine.");
           _finished = true;
           _markFinished!();
+          return;
         }
         else
         {
@@ -164,6 +163,7 @@ public static class Installation
       Log("Crystal has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even your machine.");
       _finished = true;
       _markFinished!();
+      return;
     }
     else
     {
