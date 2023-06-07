@@ -35,7 +35,7 @@ public static class Installation
     _markFinished = markFinished;
 
     if (OperatingSystem.IsWindows() && !IsAdmin())
-      ShowErrorMessageBox($"Failed to install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
+      ShowErrorMessageBox($"Cannot install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
 
     Log("Creating installation environment...");
     if (Directory.Exists(path))
@@ -91,14 +91,12 @@ public static class Installation
     StepProgress();
 
     Log("Checking for Crystal installation...");
-
     ProcessResult? crystalCheckOutput = null;
     try
     {
       crystalCheckOutput = ExecuteCommand(null, "crystal", "-v");
     }
-    catch (Win32Exception)
-    {}
+    catch (Win32Exception) {} // shut up the exception of not being found
     finally
     {
       if (crystalCheckOutput == null || crystalCheckOutput.ExitCode != 0)
