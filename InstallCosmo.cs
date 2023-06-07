@@ -111,13 +111,19 @@ public static class Installation
 
         Log("Found Scoop!");
         Log("Adding Crystal bucket...");
-        ExecuteCommand("Failed to add Crystal bucket", "powershell.exe", "-c \"scoop bucket add crystal-preview https://github.com/neatorobito/scoop-crystal\"");
+        ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket add crystal-preview https://github.com/neatorobito/scoop-crystal");
         StepProgress();
 
-        Log("Installing C++ build tools...");
-        ExecuteCommand("Failed to install C++ build tools", "powershell.exe", "-c \"scoop install vs_2022_cpp_build_tools\"");
+        ProcessResult crtCheckOutput = ExecuteCommand("Failed to execute 'where'", "where", "cl.exe");
+        if (crtCheckOutput.ExitCode != 0)
+        {
+          Log("Installing C++ build tools...");
+          ExecuteCommand("Failed to install C++ build tools", "scoop", "install vs_2022_cpp_build_tools");
+        }
+
         StepProgress();
-        ExecuteCommand("Failed to install Crystal bucket", "powershell.exe", "-c \"scoop install crystal\"");
+        Log("Installing Crystal bucket...");
+        ExecuteCommand("Failed to install Crystal bucket", "scoop", "install crystal");
         StepProgress();
       }
       else if (OperatingSystem.IsLinux())
