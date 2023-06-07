@@ -96,7 +96,7 @@ public static class Installation
     {
       crystalCheckOutput = ExecuteCommand(null, "crystal", "-v");
     }
-    catch (Win32Exception) {} // shut up the exception of not being found
+    catch (Exception) {} // shut up exceptions of not being found
     finally
     {
       if (crystalCheckOutput == null || crystalCheckOutput.ExitCode != 0)
@@ -117,7 +117,7 @@ public static class Installation
         }
         else if (OperatingSystem.IsLinux())
         {
-          ExecuteCommand("Failed to install Crystal: Snapcraft is not installed, but is required to install Crystal for Linux. If you don't want to use Snapcraft, please manually install Crystal.", "snap");
+          ExecuteCommand("Failed to install Crystal: \nSnapcraft is not installed, but is required to install Crystal for Linux. \nIf you don't want to use Snapcraft, please manually install Crystal.", "snap");
 
           string scriptPath = Path.Combine(installerPath, "snapd_setup.sh");
           ExecuteCommand("Failed to chmod Snapcraft setup script", "chmod", "+x", scriptPath);
@@ -175,6 +175,7 @@ public static class Installation
   private static bool IsAdmin()
   {
     bool isAdmin;
+
     try
     {
       WindowsIdentity user = WindowsIdentity.GetCurrent();
@@ -189,6 +190,7 @@ public static class Installation
     {
       isAdmin = false;
     }
+
     return isAdmin;
   }
 
@@ -260,9 +262,9 @@ public static class Installation
       using (StreamWriter file = File.AppendText(path))
         file.WriteLine(pathUpdateCmd);
     }
-    catch (Exception e)
+    catch (Exception err)
     {
-      ShowErrorMessageBox($"Failed to write to shell profile: {e.Message}");
+      ShowErrorMessageBox($"Failed to write to shell profile: {err.Message}");
     }
   }
 
@@ -286,7 +288,7 @@ public static class Installation
       MessageBoxManager
         .GetMessageBoxStandardWindow("Error", message)
         .Show()
-        .ContinueWith((Task _) => Environment.Exit(1));
+        .ContinueWith(_ => Environment.Exit(1));
     });
   }
 
