@@ -1,5 +1,4 @@
 ﻿using Avalonia.Threading;
-using MessageBox.Avalonia;
 using ReactiveUI;
 using System;
 using System.IO;
@@ -91,26 +90,37 @@ public class MainWindowViewModel : ReactiveObject
     IsNotInstalling = false;
     TitleText = "Installing...";
 
+    string fullCurrentDir = Path.GetFullPath(Directory.GetCurrentDirectory());
     string fullSelectedDir = Path.GetFullPath(_selectedDirectory);
     string absolutePath = Path.GetFullPath(Path.Combine(fullSelectedDir, (OperatingSystem.IsWindows() ? "" : ".") + "cosmo"));
     await Task.Run(() => Installation.InstallCosmo(
       UpdateProgress,
       UpdateTitle,
       MarkErrored,
-      absolutePath
+      MarkFinished,
+      absolutePath,
+      fullCurrentDir
     ));
 
     ProgressBarVisible = false;
     if (_errored) return;
-
     FinishedCloseVisible = true;
   }
 
   private async void SuccessfulExit()
     => await Dispatcher.UIThread.InvokeAsync(() => Environment.Exit(0));
 
+  private void MarkFinished()
+  {
+    ProgressBarVisible = false;
+    FinishedCloseVisible = true;
+  }
+
   private void MarkErrored()
-    => _errored = true;
+  {
+    _errored = true;
+    ProgressBarVisible = false;
+  }
 
   private void UpdateTitle(string title)
     => TitleText = title;

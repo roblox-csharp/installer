@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
@@ -16,17 +17,22 @@ public static class Installation
   private static Action<int>? _updateProgress;
   private static Action<string>? _updateTitle;
   private static Action? _markErrored;
+  private static Action? _markFinished;
   private static bool _errored = false;
+  private static bool _finished = false;
 
   public static void InstallCosmo(
     Action<int> updateProgress,
     Action<string> updateTitle,
     Action markErrored,
-    string path
+    Action markFinished,
+    string path,
+    string installerPath
   ) {
     _updateProgress = updateProgress;
     _updateTitle = updateTitle;
     _markErrored = markErrored;
+    _markFinished = markFinished;
 
     if (OperatingSystem.IsWindows() && !IsAdmin())
       ShowErrorMessageBox($"Failed to install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
@@ -85,54 +91,75 @@ public static class Installation
     StepProgress();
 
     Log("Checking for Crystal installation...");
-    ProcessResult crystalCheckOutput = ExecuteCommand(null, "crystal", "-v");
-    if (crystalCheckOutput.ExitCode != 0)
-    {
-      Log("Installing Crystal...");
-      if (OperatingSystem.IsWindows())
-      {
-        Log("Installing Scoop...");
-        ExecuteCommand("Failed to install Scoop", "irm", "get.scoop.sh", "|", "iex");
-        StepProgress();
-        Log("Adding Crystal bucket...");
-        ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket", "add", "crystal-preview", "https://github.com/neatorobito/scoop-crystal");
-        Log("Installing C++ build tools...");
-        ExecuteCommand("Failed to install C++ build tools", "scoop", "install", "vs_2022_cpp_build_tools");
-        StepProgress();
-        ExecuteCommand("Failed to install Crystal bucket", "scoop", "install", "crystal");
-        StepProgress();
-        Log("Successfully installed Crystal via Scoop!...");
-      }
-      else if (OperatingSystem.IsLinux())
-        ExecuteCommand("Failed to install Crystal", "curl", "-sSL", "https://dist.crystal-lang.org/rpm/setup.sh");
-      else if (OperatingSystem.IsMacOS())
-        ExecuteCommand("Failed to install Crystal", "brew", "install", "crystal");
 
-      if (!OperatingSystem.IsWindows())
-      {
-        StepProgress();
-        StepProgress();
-        StepProgress();
-      }
-      Log("Successfully installed Crystal.");
-    }
-    else
+    ProcessResult? crystalCheckOutput = null;
+    try
     {
-      Log("Crystal is already installed, continuing...");
-      if (OperatingSystem.IsWindows())
+      crystalCheckOutput = ExecuteCommand(null, "crystal", "-v");
+    }
+    catch (Win32Exception)
+    {}
+    finally
+    {
+      if (crystalCheckOutput == null || crystalCheckOutput.ExitCode != 0)
       {
-        Log("Updating Scoop + Crystal...");
-        ExecuteCommand("Failed to update Scoop", "scoop", "update");
-        ExecuteCommand("Failed to update Crystal bucket", "scoop", "update", "crystal");
-        // maybe dont terminate installation if it fails to update
+        Log("Installing Crystal...");
+        if (OperatingSystem.IsWindows())
+        {
+          Log("Installing Scoop...");
+          ExecuteCommand("Failed to install Scoop", "irm", "get.scoop.sh", "|", "iex");
+          StepProgress();
+          Log("Adding Crystal bucket...");
+          ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket", "add", "crystal-preview", "https://github.com/neatorobito/scoop-crystal");
+          Log("Installing C++ build tools...");
+          ExecuteCommand("Failed to install C++ build tools", "scoop", "install", "vs_2022_cpp_build_tools");
+          StepProgress();
+          ExecuteCommand("Failed to install Crystal bucket", "scoop", "install", "crystal");
+          StepProgress();
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+          ExecuteCommand("Failed to install Crystal: Snapcraft is not installed, but is required to install Crystal for Linux. If you don't want to use Snapcraft, please manually install Crystal.", "snap");
+
+          string scriptPath = Path.Combine(installerPath, "snapd_setup.sh");
+          ExecuteCommand("Failed to chmod Snapcraft setup script", "chmod", "+x", scriptPath);
+          StepProgress();
+          ExecuteCommand("Failed to setup", "pkexec", "--disable-internal-agent", scriptPath);
+          StepProgress();
+          ExecuteCommand("Failed to execute 'sudo snap install crystal'", "sudo", "snap", "install", "crystal", "--classic");
+          StepProgress();
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+          ExecuteCommand("Failed to install Crystal", "brew", "install", "crystal");
+          StepProgress();
+          StepProgress();
+          StepProgress();
+        }
+
+        Log("Crystal has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell first.");
+        _finished = true;
+        _markFinished!();
+      }
+      else
+      {
+        Log("Crystal is already installed, continuing...");
+        if (OperatingSystem.IsWindows())
+        {
+          Log("Updating Scoop + Crystal...");
+          ExecuteCommand("Failed to update Scoop", "scoop", "update");
+          ExecuteCommand("Failed to update Crystal bucket", "scoop", "update", "crystal");
+          // maybe dont terminate installation if it fails to update
+        }
       }
     }
 
+    if (_finished) return;
     StepProgress();
 
     Log("Building Cosmo...");
     Log("Installing dependencies...");
-    ExecuteCommand("Failed to install Cosmo's dependencies", "shards", "install");
+    ExecuteCommand("Failed to install Cosmo dependencies", "shards", "install");
     StepProgress();
 
     Log("Compiling...");
@@ -166,22 +193,25 @@ public static class Installation
     }
     return isAdmin;
   }
-  private static string ExecuteGitCommand(string arguments, string errorMessage)
-  {
-    ProcessResult result = ExecuteCommand(errorMessage, "git", arguments.Split(' '));
-    return result.StandardOutput.Trim();
-  }
 
   private static void AddToPath(string path)
   {
     if (_errored) return;
+
     Log("Adding Cosmo to PATH...");
     string binPath = Path.Combine(path, "bin");
     string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     string profilePath = Path.Combine(homeDir, ".bashrc");
     string pathUpdateCmd = $"export PATH=\"{binPath}:$PATH\"";
+
     WriteProfile(profilePath, pathUpdateCmd);
     Log("Successfully added Cosmo to your PATH.");
+  }
+
+  private static string ExecuteGitCommand(string arguments, string errorMessage)
+  {
+    ProcessResult result = ExecuteCommand(errorMessage, "git", arguments.Split(' '));
+    return result.StandardOutput.Trim();
   }
 
   private static ProcessResult ExecuteCommand(string? errorMessage, string command, params string[] arguments)
@@ -207,8 +237,8 @@ public static class Installation
     process.OutputDataReceived += (s, e) => output.AppendLine(e.Data);
     process.ErrorDataReceived += (s, e) => error.AppendLine(e.Data);
     process.Start();
-    process.BeginOutputReadLine();
     process.BeginErrorReadLine();
+    process.BeginOutputReadLine();
     process.WaitForExit();
 
     var result = new ProcessResult
@@ -245,7 +275,7 @@ public static class Installation
     _updateProgress!((int)progress);
   }
 
-  private static async void ShowErrorMessageBox(string message)
+  private static void ShowErrorMessageBox(string message)
   {
     if (_errored) return;
 
@@ -253,13 +283,12 @@ public static class Installation
     _markErrored!();
     _updateTitle!("Error!");
 
-    await Dispatcher.UIThread.InvokeAsync(async () =>
+    Dispatcher.UIThread.InvokeAsync(() =>
     {
-      await MessageBoxManager
+      MessageBoxManager
         .GetMessageBoxStandardWindow("Error", message)
-        .Show();
-
-      Environment.Exit(1);
+        .Show()
+        .ContinueWith((Task _) => Environment.Exit(1));
     });
   }
 
