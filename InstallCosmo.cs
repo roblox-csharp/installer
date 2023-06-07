@@ -123,7 +123,7 @@ public static class Installation
           ExecuteCommand("Failed to install Scoop", "powershell.exe", "-c \"irm get.scoop.sh | iex\"");
           StepProgress();
 
-          Log("Scoop has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even your machine.");
+          Log("Scoop has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even\nyour machine.");
           _finished = true;
           _markFinished!();
           return;
@@ -160,7 +160,7 @@ public static class Installation
         StepProgress();
       }
 
-      Log("Crystal has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even your machine.");
+      Log("Crystal has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even\nyour machine.");
       _finished = true;
       _markFinished!();
       return;
