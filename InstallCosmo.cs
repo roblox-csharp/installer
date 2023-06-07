@@ -110,6 +110,10 @@ public static class Installation
         ExecuteCommand("Failed to set execution policy", "powershell.exe", "-c \"Set-ExecutionPolicy RemoteSigned -Scope CurrentUser\"");
         ExecuteCommand("Failed to install Scoop", "powershell.exe", "-c \"irm get.scoop.sh | iex\"");
         StepProgress();
+        Log("Scoop has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even your machine.");
+        _finished = true;
+        _markFinished!();
+
         Log("Adding Crystal bucket...");
         ExecuteCommand("Failed to add Crystal bucket", "powershell.exe", "-c \"scoop bucket add crystal-preview", "https://github.com/neatorobito/scoop-crystal\"");
         Log("Installing C++ build tools...");
