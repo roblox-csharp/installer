@@ -105,7 +105,7 @@ public static class Installation
       if (OperatingSystem.IsWindows())
       {
         Log("Installing Scoop...");
-        ExecuteCommand("Failed to set execution policy", "Set-ExecutionPolicy", "RemoteSigned -Scope CurrentUser");
+        ExecuteCommand("Failed to set execution policy","powershell.exe", "-c \"Set-ExecutionPolicy RemoteSigned -Scope CurrentUser\"");
         ExecuteCommand("Failed to install Scoop", "powershell.exe", "-c \"irm get.scoop.sh | iex\"");
         StepProgress();
         Log("Adding Crystal bucket...");
