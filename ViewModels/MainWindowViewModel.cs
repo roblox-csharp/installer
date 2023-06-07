@@ -1,4 +1,5 @@
-﻿using MessageBox.Avalonia;
+﻿using Avalonia.Threading;
+using MessageBox.Avalonia;
 using ReactiveUI;
 using System;
 using System.IO;
@@ -105,8 +106,8 @@ public class MainWindowViewModel : ReactiveObject
     FinishedCloseVisible = true;
   }
 
-  private void SuccessfulExit()
-    => Environment.Exit(0);
+  private async void SuccessfulExit()
+    => await Dispatcher.UIThread.InvokeAsync(() => Environment.Exit(0));
 
   private void MarkErrored()
     => _errored = true;

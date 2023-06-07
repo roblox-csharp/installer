@@ -252,6 +252,7 @@ public static class Installation
     _errored = true;
     _markErrored!();
     _updateTitle!("Error!");
+
     await Dispatcher.UIThread.InvokeAsync(async () =>
     {
       await MessageBoxManager
