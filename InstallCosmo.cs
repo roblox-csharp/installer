@@ -31,7 +31,6 @@ public static class Installation
     if (OperatingSystem.IsWindows() && !IsAdmin())
       ShowErrorMessageBox($"Failed to install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
 
-    path = Path.GetFullPath(path);
     Log("Creating installation environment...");
     if (Directory.Exists(path))
       Log("Installation directory exists, skipping creation...");
@@ -157,11 +156,11 @@ public static class Installation
       WindowsPrincipal principal = new WindowsPrincipal(user);
       isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
-    catch (UnauthorizedAccessException ex)
+    catch (UnauthorizedAccessException)
     {
       isAdmin = false;
     }
-    catch (Exception ex)
+    catch (Exception)
     {
       isAdmin = false;
     }

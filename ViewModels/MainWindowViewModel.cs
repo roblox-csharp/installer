@@ -51,7 +51,15 @@ public class MainWindowViewModel : ReactiveObject
     set => this.RaiseAndSetIfChanged(ref _progressBarValue, value);
   }
 
+  private bool _finishedCloseVisible = false;
+  public bool FinishedCloseVisible
+  {
+    get => _finishedCloseVisible;
+    set => this.RaiseAndSetIfChanged(ref _finishedCloseVisible, value);
+  }
+
   public ReactiveCommand<Unit, Unit> InstallCommand { get; }
+  public ReactiveCommand<Unit, Unit> SuccessfulExitCommand { get; }
 
   private bool _errored = false;
 
@@ -59,6 +67,7 @@ public class MainWindowViewModel : ReactiveObject
   {
     _selectedDirectory = GetDefaultInstallationDirectory();
     InstallCommand = ReactiveCommand.Create(InstallCosmo);
+    SuccessfulExitCommand = ReactiveCommand.Create(SuccessfulExit);
     Console.WriteLine("Initialized app.");
   }
 
@@ -81,7 +90,8 @@ public class MainWindowViewModel : ReactiveObject
     IsNotInstalling = false;
     TitleText = "Installing...";
 
-    string absolutePath = Path.GetFullPath(Path.Combine(_selectedDirectory, (OperatingSystem.IsWindows() ? "" : ".") + "cosmo"));
+    string fullSelectedDir = Path.GetFullPath(_selectedDirectory);
+    string absolutePath = Path.GetFullPath(Path.Combine(fullSelectedDir, (OperatingSystem.IsWindows() ? "" : ".") + "cosmo"));
     await Task.Run(() => Installation.InstallCosmo(
       UpdateProgress,
       UpdateTitle,
@@ -92,13 +102,11 @@ public class MainWindowViewModel : ReactiveObject
     ProgressBarVisible = false;
     if (_errored) return;
 
-    string message = "Successfully installed Cosmo! You may have to restart your shell for changes to take effect." + (OperatingSystem.IsWindows() ? $"\nYou must to add \"{absolutePath}\\bin\" to your PATH environment variable." : "");
-    await MessageBoxManager
-      .GetMessageBoxStandardWindow("Installation Finished", message)
-      .Show();
-
-    Environment.Exit(0);
+    FinishedCloseVisible = true;
   }
+
+  private void SuccessfulExit()
+    => Environment.Exit(0);
 
   private void MarkErrored()
     => _errored = true;

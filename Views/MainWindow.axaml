@@ -42,6 +42,13 @@
         />
         <Button
             HorizontalAlignment="Center" VerticalAlignment="Center"
+            x:Name="FinishedCloseButton" Content="Close"
+            Command="{Binding SuccessfulExitCommand}"
+            IsVisible="{Binding FinishedCloseVisible}"
+            Margin="10"
+        />
+        <Button
+            HorizontalAlignment="Center" VerticalAlignment="Center"
             x:Name="SelectDirectoryButton" Content="Select directory"
             Click="SelectDirectoryButton_Click"
             IsVisible="{Binding IsNotInstalling}"
