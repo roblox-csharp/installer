@@ -105,14 +105,15 @@ public static class Installation
         if (OperatingSystem.IsWindows())
         {
           Log("Installing Scoop...");
-          ExecuteCommand("Failed to install Scoop", "irm", "get.scoop.sh", "|", "iex");
+          ExecuteCommand("Failed to set execution policy", "Set-ExecutionPolicy", "RemoteSigned -Scope CurrentUser");
+          ExecuteCommand("Failed to install Scoop", "powershell.exe", "-c \"irm get.scoop.sh | iex\"");
           StepProgress();
           Log("Adding Crystal bucket...");
-          ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket", "add", "crystal-preview", "https://github.com/neatorobito/scoop-crystal");
+          ExecuteCommand("Failed to add Crystal bucket", "scoop", "bucket add crystal-preview", "https://github.com/neatorobito/scoop-crystal");
           Log("Installing C++ build tools...");
-          ExecuteCommand("Failed to install C++ build tools", "scoop", "install", "vs_2022_cpp_build_tools");
+          ExecuteCommand("Failed to install C++ build tools", "scoop", "install vs_2022_cpp_build_tools");
           StepProgress();
-          ExecuteCommand("Failed to install Crystal bucket", "scoop", "install", "crystal");
+          ExecuteCommand("Failed to install Crystal bucket", "scoop", "install crystal");
           StepProgress();
         }
         else if (OperatingSystem.IsLinux())
@@ -124,12 +125,12 @@ public static class Installation
           StepProgress();
           ExecuteCommand("Failed to setup", "pkexec", "--disable-internal-agent", scriptPath);
           StepProgress();
-          ExecuteCommand("Failed to execute 'sudo snap install crystal'", "sudo", "snap", "install", "crystal", "--classic");
+          ExecuteCommand("Failed to execute 'sudo snap install crystal'", "sudo", "snap install crystal --classic");
           StepProgress();
         }
         else if (OperatingSystem.IsMacOS())
         {
-          ExecuteCommand("Failed to install Crystal", "pkexec", "--disable-internal-agent", "brew", "install", "crystal");
+          ExecuteCommand("Failed to install Crystal", "pkexec", "--disable-internal-agent", "brew install crystal");
           StepProgress();
           StepProgress();
           StepProgress();
@@ -146,7 +147,7 @@ public static class Installation
         {
           Log("Updating Scoop + Crystal...");
           ExecuteCommand("Failed to update Scoop", "scoop", "update");
-          ExecuteCommand("Failed to update Crystal bucket", "scoop", "update", "crystal");
+          ExecuteCommand("Failed to update Crystal bucket", "scoop", "update crystal");
           // maybe dont terminate installation if it fails to update
         }
       }
@@ -161,7 +162,7 @@ public static class Installation
     StepProgress();
 
     Log("Compiling...");
-    ExecuteCommand("Failed to build Cosmo", "shards", $"build --release");
+    ExecuteCommand("Failed to build Cosmo", "shards", "build --release");
     StepProgress();
 
     Log("Successfully built Cosmo.");
