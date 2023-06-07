@@ -107,39 +107,18 @@ public static class Installation
       if (OperatingSystem.IsWindows())
       {
         Log("Checking for Scoop installation...");
-        ProcessResult? scoopCheckOutput = null;
-        try
-        {
-          scoopCheckOutput = ExecuteCommand(null, "scoop");
-        }
-        catch (Win32Exception) // shut up exceptions saying not found
-        {
-        }
+        ExecuteCommand("Failed to install Crystal: \nScoop is not installed, but is required to install Crystal for Windows. \nIf you don't want to use Scoop, please manually install Crystal.", "powershell.exe", "c \"scoop\"");
 
-        if (scoopCheckOutput == null || scoopCheckOutput.ExitCode != 0)
-        {
-          Log("Installing Scoop...");
-          ExecuteCommand("Failed to set execution policy", "powershell.exe", "-c \"Set-ExecutionPolicy RemoteSigned -Scope CurrentUser\"");
-          ExecuteCommand("Failed to install Scoop", "powershell.exe", "-c \"irm get.scoop.sh | iex\"");
-          StepProgress();
+        Log("Found Scoop!");
+        Log("Adding Crystal bucket...");
+        ExecuteCommand("Failed to add Crystal bucket", "powershell.exe", "-c \"scoop bucket add crystal-preview", "https://github.com/neatorobito/scoop-crystal\"");
+        StepProgress();
 
-          Log("Scoop has been successfully installed.\nPlease restart the installer and try again.\nYou may need to restart your shell, or even\nyour machine.");
-          _finished = true;
-          _markFinished!();
-          return;
-        }
-        else
-        {
-          Log("Found Scoop!");
-          Log("Adding Crystal bucket...");
-          ExecuteCommand("Failed to add Crystal bucket", "powershell.exe", "-c \"scoop bucket add crystal-preview", "https://github.com/neatorobito/scoop-crystal\"");
-          Log("Installing C++ build tools...");
-
-          ExecuteCommand("Failed to install C++ build tools", "powershell.exe", "-c \"scoop install vs_2022_cpp_build_tools\"");
-          StepProgress();
-          ExecuteCommand("Failed to install Crystal bucket", "powershell.exe", "-c \"scoop install crystal\"");
-          StepProgress();
-        }
+        Log("Installing C++ build tools...");
+        ExecuteCommand("Failed to install C++ build tools", "powershell.exe", "-c \"scoop install vs_2022_cpp_build_tools\"");
+        StepProgress();
+        ExecuteCommand("Failed to install Crystal bucket", "powershell.exe", "-c \"scoop install crystal\"");
+        StepProgress();
       }
       else if (OperatingSystem.IsLinux())
       {
