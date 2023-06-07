@@ -107,11 +107,11 @@ public static class Installation
       if (OperatingSystem.IsWindows())
       {
         Log("Checking for Scoop installation...");
-        ExecuteCommand("Failed to install Crystal: \nScoop is not installed, but is required to install Crystal for Windows. \nIf you don't want to use Scoop, please manually install Crystal.", "powershell.exe", "c \"scoop\"");
+        ExecuteCommand("Failed to install Crystal: \nScoop is not installed, but is required to install Crystal for Windows. \nIf you don't want to use Scoop, please manually install Crystal.", "powershell.exe", "-c \"scoop\"");
 
         Log("Found Scoop!");
         Log("Adding Crystal bucket...");
-        ExecuteCommand("Failed to add Crystal bucket", "powershell.exe", "-c \"scoop bucket add crystal-preview", "https://github.com/neatorobito/scoop-crystal\"");
+        ExecuteCommand("Failed to add Crystal bucket", "powershell.exe", "-c \"scoop bucket add crystal-preview https://github.com/neatorobito/scoop-crystal\"");
         StepProgress();
 
         Log("Installing C++ build tools...");
