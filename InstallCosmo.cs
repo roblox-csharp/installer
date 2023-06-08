@@ -69,7 +69,14 @@ public static class Installation
     {
       dirEntries = Directory.GetFileSystemEntries(".");
       if (dirEntries.Length != 0)
+      {
+        if (OperatingSystem.IsWindows())
+          ExecuteCommand("Failed to remove shard.lock", "powershell", "-c \"rm -F ./shard.lock\"");
+        else
+          ExecuteCommand("Failed to remove shard.lock", "rm", "-f shard.lock");
+
         ExecuteGitCommand("pull origin master --allow-unrelated-histories", "Failed to pull from the repository (is git installed?)");
+      }
       else
         ExecuteGitCommand("clone https://github.com/cosmo-lang/cosmo.git .", "Failed to clone the repository (is git installed?)");
     }
