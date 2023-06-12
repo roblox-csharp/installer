@@ -15,6 +15,10 @@ This is a simple installer GUI for the [Cosmo](https://github.com/cosmo-lang/cos
 ### OS X
 - You must open the application in administrator mode.<br />
 
+# Todo
+- Also install the [Stars package manager](https://github.com/cosmo-lang/stars)
+- Label version that is being pulled from Cosmo/Stars
+
 # Contributing
 If you would like to improve anything in this repository, please fork it and create a pull request. Contributions are welcome and encouraged (this goes for Cosmo itself, too).
 
