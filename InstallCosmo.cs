@@ -146,7 +146,7 @@ public static class Installation
       }
       else if (OperatingSystem.IsMacOS())
       {
-        ExecuteCommand("Failed to install Crystal", "brew install crystal");
+        ExecuteCommand("Failed to install Crystal", "brew", "install crystal");
         StepProgress();
         StepProgress();
         StepProgress();
