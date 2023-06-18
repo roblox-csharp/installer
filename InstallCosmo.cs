@@ -71,7 +71,7 @@ public static class Installation
       if (dirEntries.Length != 0)
       {
         if (OperatingSystem.IsWindows())
-          ExecuteCommand("Failed to remove shard.lock", "powershell", "-c \"rm -F ./shard.lock\"");
+          ExecuteCommand("Failed to remove shard.lock", "powershell", "-c \"rm -Force ./shard.lock\"");
         else
           ExecuteCommand("Failed to remove shard.lock", "rm", "-f shard.lock");
 
