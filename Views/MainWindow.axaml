@@ -1,58 +1,58 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:CosmoInstaller.ViewModels"
+        xmlns:vm="using:Installer.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
             Width="400"
             Height="250"
         x:CompileBindings="True"
-        x:Class="CosmoInstaller.Views.MainWindow"
+        x:Class="Installer.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/cosmo.png"
-        Title="Cosmo Installer">
+        Icon="/Assets/roblox-cs.png"
+        Title="RobloxCS Installer">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
 
-    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-        <TextBlock
-            HorizontalAlignment="Center" VerticalAlignment="Center"
-            x:Name="TitleLabel"
-            FontSize="16" Margin="10"
-            Text="{Binding TitleText}"
+  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+    <TextBlock
+        HorizontalAlignment="Center" VerticalAlignment="Center"
+        x:Name="TitleLabel"
+        FontSize="16" Margin="10"
+        Text="{Binding TitleText}"
         />
-        <ProgressBar
-            x:Name="LoadingBar"
-            Minimum="0" Maximum="100" Value="{Binding ProgressBarValue}"
-            Width="225" Height="15" Margin="10"
-            IsIndeterminate="False"
-            IsVisible="{Binding ProgressBarVisible}"
+    <ProgressBar
+        x:Name="LoadingBar"
+        Minimum="0" Maximum="100" Value="{Binding ProgressBarValue}"
+        Width="225" Height="15" Margin="10"
+        IsIndeterminate="False"
+        IsVisible="{Binding ProgressBarVisible}"
         />
 
-        <Button
-            HorizontalAlignment="Center" VerticalAlignment="Center"
-            x:Name="InstallButton" Content="Install"
-            Command="{Binding InstallCommand}"
-            IsVisible="{Binding IsNotInstalling}"
-            Margin="10"
+    <Button
+        HorizontalAlignment="Center" VerticalAlignment="Center"
+        x:Name="InstallButton" Content="Install"
+        Command="{Binding InstallCommand}"
+        IsVisible="{Binding IsNotInstalling}"
+        Margin="10"
         />
-        <Button
-            HorizontalAlignment="Center" VerticalAlignment="Center"
-            x:Name="FinishedCloseButton" Content="Close"
-            Command="{Binding SuccessfulExitCommand}"
-            IsVisible="{Binding FinishedCloseVisible}"
-            Margin="10"
+    <Button
+        HorizontalAlignment="Center" VerticalAlignment="Center"
+        x:Name="FinishedCloseButton" Content="Close"
+        Command="{Binding SuccessfulExitCommand}"
+        IsVisible="{Binding FinishedCloseVisible}"
+        Margin="10"
         />
-        <Button
-            HorizontalAlignment="Center" VerticalAlignment="Center"
-            x:Name="SelectDirectoryButton" Content="Select directory"
-            Click="SelectDirectoryButton_Click"
-            IsVisible="{Binding IsNotInstalling}"
-            Margin="10"
+    <Button
+        HorizontalAlignment="Center" VerticalAlignment="Center"
+        x:Name="SelectDirectoryButton" Content="Select directory"
+        Click="SelectDirectoryButton_Click"
+        IsVisible="{Binding IsNotInstalling}"
+        Margin="10"
         />
-    </StackPanel>
+  </StackPanel>
 </Window>
