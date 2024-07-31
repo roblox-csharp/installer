@@ -9,6 +9,9 @@ using Installer.Views;
 using Installer.ViewModels;
 using Avalonia.Controls;
 using System.Collections.Generic;
+using LibGit2Sharp;
+using System.Net;
+using System.Linq;
 
 namespace Installer;
 
@@ -25,7 +28,7 @@ public static class Installation
     private static Action? _markErrored;
     private static bool _errored = false;
     private static string _path = "";
-    private static string _latestTag = "";
+    private static Tag? _latestTag;
 
     public static async Task InstallRbxcs(
       Action<int> updateProgress,
@@ -69,37 +72,102 @@ public static class Installation
             ShowErrorMessageBox($"Failed to change directory (run as administrator?): {err.Message}");
         }
 
+        const string repoURL = "https://github.com/roblox-csharp/roblox-cs.git";
+        const string remoteName = "origin";
+        var clonePath = Path.Combine(path, ".");
+        var gitFolder = Path.Combine(clonePath, ".git");
+
+        Repository? repo = null;
+        if (Directory.Exists(gitFolder))
+        {
+            try
+            {
+                repo = new Repository(gitFolder);
+            }
+            catch (Exception err)
+            {
+                ShowErrorMessageBox($"Failed to create repository: {err.Message}\n{string.Join('\n', err.StackTrace)}");
+                return;
+            }
+        }
         StepProgress();
+
+        Remote origin = null!;
+        IEnumerable<string> refspecs = null!;
         Display("Pulling repository...");
         try
         {
-            var directoryEntries = Directory.GetFileSystemEntries(".");
-            if (directoryEntries.Length != 0)
+            var directoryEntries = Directory.GetFileSystemEntries(clonePath);
+            if (directoryEntries.Length == 0)
             {
-                ExecuteGitCommand("-v", "Failed to run 'git' command (is git installed?)");
-                ExecuteGitCommand("pull origin master --allow-unrelated-histories", "Failed to pull from the compiler repository");
+                try
+                {
+                    Repository.Clone(repoURL, clonePath);
+                }
+                catch (Exception err)
+                {
+                    ShowErrorMessageBox($"Failed to clone the compiler repository: {err.Message}");
+                    return;
+                }
             }
-            else
+            if (repo == null)
             {
-                ExecuteGitCommand("clone https://github.com/roblox-csharp/roblox-cs.git .", "Failed to clone the compiler repository");
+                try
+                {
+                    repo = new Repository(gitFolder);
+                }
+                catch (Exception err)
+                {
+                    ShowErrorMessageBox($"Failed to create repository: {err.Message}\n{string.Join('\n', err.StackTrace)}");
+                    return;
+                }
             }
+            origin = repo.Network.Remotes[remoteName];
+            refspecs = origin.FetchRefSpecs.Select(refspec => refspec.ToString()).OfType<string>();
+            GitPull(repo, origin, refspecs);
         }
         catch (Exception err)
         {
             ShowErrorMessageBox($"Failed to read the compiler repository directory (run as administrator?): {err.Message}");
+            return;
         }
 
         StepProgress();
         Display("Fetching tags...");
-        ExecuteGitCommand("fetch --tags", "Failed to fetch release tags");
+        if (repo == null) return;
+        try
+        {
+            repo.Network.Fetch(origin.Name, refspecs, new FetchOptions()
+            {
+                TagFetchMode = TagFetchMode.All
+            });
+        }
+        catch (Exception err)
+        {
+            ShowErrorMessageBox($"Failed to fetch release tags from repository: {err.Message}");
+        }
         StepProgress();
 
         Display("Fetching latest release...");
-        _latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
+        var tags = repo.Tags;
+        _latestTag = tags.OrderByDescending(tag => tag.FriendlyName).FirstOrDefault()!;
+        if (_latestTag == null)
+        {
+            ShowErrorMessageBox($"Failed to get the latest release tag, tags found: {repo.Tags.Count()}");
+            return;
+        }
         StepProgress();
 
         Display("Checking out latest release...");
-        ExecuteGitCommand($"checkout {_latestTag}", "Failed to checkout the latest release");
+        try
+        {
+            var commit = repo.Commits.FirstOrDefault(commit => commit == (Commit)_latestTag.Target);
+            Commands.Checkout(repo, commit);
+        }
+        catch (Exception err)
+        {
+            ShowErrorMessageBox($"Failed to checkout the latest release: {err.Message}");
+        }
         StepProgress();
 
         Display("Building roblox-cs...");
@@ -143,7 +211,32 @@ public static class Installation
         Display("Successfully added roblox-cs to your PATH.");
 
         StepProgress();
-        Display($"Successfully installed roblox-cs ({_latestTag}).");
+        Display($"Successfully installed roblox-cs ({_latestTag?.FriendlyName ?? "???"}).");
+    }
+
+    private static void GitPull(Repository repo, Remote remote, IEnumerable<string> refspecs)
+    {
+        try
+        {
+            repo.Network.Fetch(remote.Name, refspecs);
+        }
+        catch (Exception err)
+        {
+            ShowErrorMessageBox($"Failed to fetch origin/master from repository: {err.Message}");
+        }
+        try
+        {
+            var branchToMerge = repo.Branches[$"{remote.Name}/master"];
+            var signature = new Signature("rbxcs-installer", "rbxcs-installer@roblox-cs.com", DateTimeOffset.Now);
+            var mergeResult = repo.Merge(branchToMerge, signature, new MergeOptions
+            {
+                FileConflictStrategy = CheckoutFileConflictStrategy.Theirs
+            });
+        }
+        catch (Exception err)
+        {
+            ShowErrorMessageBox($"Failed to merge: {err.Message}");
+        }
     }
 
     private static void UpdateEnvironmentPath(string path)
@@ -180,12 +273,6 @@ public static class Installation
         var pathUpdateCmd = $"export PATH=\"{binPath}:$PATH\"";
 
         WriteProfile(profilePath, pathUpdateCmd);
-    }
-
-    private static string ExecuteGitCommand(string arguments, string errorMessage)
-    {
-        var result = ExecuteCommand(errorMessage, "git", arguments.Split(' '));
-        return result.StandardOutput.Trim();
     }
 
     private static ProcessResult ExecuteCommand(string? errorMessage, string command, params string[] arguments)

@@ -1,11 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Reactive;
-using System.Diagnostics;
 using ReactiveUI;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
-using System.Threading.Tasks;
 
 namespace Installer.ViewModels;
 
@@ -73,6 +71,9 @@ public class MainWindowViewModel : ReactiveObject
         Console.WriteLine("Initialized app.");
     }
 
+    public void UpdateTitle(string title)
+        => TitleText = title;
+
     private string GetDefaultInstallationDirectory()
     {
         string defaultDirectory = string.Empty;
@@ -92,10 +93,7 @@ public class MainWindowViewModel : ReactiveObject
         IsNotInstalling = false;
         TitleText = "Installing...";
 
-        string fullCurrentDir = Path.GetFullPath(Path.GetDirectoryName(Path.GetDirectoryName(new StackTrace(true).GetFrame(0)!.GetFileName())!)!);
-        string fullSelectedDir = Path.GetFullPath(_selectedDirectory);
-        string absolutePath = Path.Combine(fullSelectedDir, "roblox-cs");
-
+        var absolutePath = Path.Combine(Path.GetFullPath(_selectedDirectory), "roblox-cs");
         Dispatcher.UIThread.InvokeAsync(async () =>
         {
             try
@@ -128,7 +126,7 @@ public class MainWindowViewModel : ReactiveObject
     }
 
     private async void SuccessfulExit()
-      => await Dispatcher.UIThread.InvokeAsync(() => Environment.Exit(0));
+        => await Dispatcher.UIThread.InvokeAsync(() => Environment.Exit(0));
 
     private void MarkErrored()
     {
@@ -136,9 +134,6 @@ public class MainWindowViewModel : ReactiveObject
         ProgressBarVisible = false;
     }
 
-    private void UpdateTitle(string title)
-      => TitleText = title;
-
     private void UpdateProgress(int progress)
-      => ProgressBarValue = progress;
+        => ProgressBarValue = progress;
 }

@@ -3,7 +3,6 @@
 This is a simple installer GUI for [roblox-cs](https://github.com/roblox-csharp/roblox-cs) written in C# using the Avalonia framework.
 
 # Requirements
-- Git
 - .NET 8.0
 
 # Contribute

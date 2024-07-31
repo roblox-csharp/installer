@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls;
+﻿using System;
+using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Installer.ViewModels;
@@ -11,21 +12,23 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        DataContext = new MainWindowViewModel();
         InitializeComponent();
     }
 
     private void InitializeComponent()
-      => AvaloniaXamlLoader.Load(this);
+        => AvaloniaXamlLoader.Load(this);
 
-    [System.Obsolete]
+    [Obsolete]
     private async void SelectDirectoryButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog();
         dialog.Title = "Select installation directory";
 
         var selectedDirectory = await dialog.ShowAsync(this);
-        if (!string.IsNullOrEmpty(selectedDirectory) && DataContext != null)
-            DataContext.SelectedDirectory = selectedDirectory;
+        Console.WriteLine("selected dir: " + selectedDirectory);
+        if (!string.IsNullOrEmpty(selectedDirectory))
+        {
+            ((MainWindowViewModel)base.DataContext!).SelectedDirectory = selectedDirectory;
+        }
     }
 }
