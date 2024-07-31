@@ -29,9 +29,4 @@
     <PackageReference Include="XamlNameReferenceGenerator" Version="1.6.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Views\SourceCredentialsWindow.axaml.cs">
-      <DependentUpon>%(Filename)</DependentUpon>
-    </Compile>
-  </ItemGroup>
 </Project>
