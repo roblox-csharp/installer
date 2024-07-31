@@ -14,15 +14,18 @@ namespace Installer;
 
 public static class Installation
 {
-    private const uint steps = 9;
+    private const string _sourceName = "rbxcs";
+    private const string _sourceURL = "https://nuget.pkg.github.com/roblox-csharp/index.json";
+    private const uint _steps = 9;
 
-    private static readonly float _step = (1f / steps) * 100;
+    private static readonly float _step = (1f / _steps) * 100;
     private static float _progress = 0;
     private static Action<int>? _updateProgress;
     private static Action<string>? _updateTitle;
     private static Action? _markErrored;
     private static bool _errored = false;
     private static string _path = "";
+    private static string _latestTag = "";
 
     public static async Task InstallRbxcs(
       Action<int> updateProgress,
@@ -35,9 +38,6 @@ public static class Installation
         _updateTitle = updateTitle;
         _markErrored = markErrored;
         _path = path;
-
-        // if (OperatingSystem.IsWindows() && !IsAdmin())
-        //   ShowErrorMessageBox($"Cannot install. You are not running with elevated privileges.\nRestart the app as an administrator and try again.");
 
         if (_errored) return;
         Display("Creating installation environment...");
@@ -95,37 +95,43 @@ public static class Installation
         StepProgress();
 
         Display("Fetching latest release...");
-        var latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
+        _latestTag = ExecuteGitCommand("describe --tags --abbrev=0", "Failed to get the latest release tag");
         StepProgress();
 
         Display("Checking out latest release...");
-        ExecuteGitCommand($"checkout {latestTag}", "Failed to checkout the latest release");
+        ExecuteGitCommand($"checkout {_latestTag}", "Failed to checkout the latest release");
         StepProgress();
 
         Display("Building roblox-cs...");
+        var sourcesResult = ExecuteCommand(null, "dotnet", $"nuget list source");
+        var sources = sourcesResult.StandardOutput;
+        var sourceAlreadyAdded = sources.Contains(_sourceName) && sources.Contains(_sourceURL);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            var credentialsWindow = new SourceCredentialsWindow()
+            new SourceCredentialsWindow(sourceAlreadyAdded)
             {
                 DataContext = new SourceCredentialsWindowViewModel()
             };
-            credentialsWindow.Show();
         });
     }
 
-    public static void OnCredentialsAcquired(SourceCredentialsWindow credentialsWindow)
+    public static void OnCredentialsAcquired(SourceCredentialsWindow credentialsWindow, bool sourceAlreadyAdded)
     {
-        var usernameTextBox = credentialsWindow.FindControl<TextBox>("UsernameBox")!;
-        var tokenTextBox = credentialsWindow.FindControl<TextBox>("TokenBox")!;
-        Display("Adding NuGet source for RobloxCS packages...");
-        ExecuteCommand(null, "dotnet", $"nuget add source \"https://nuget.pkg.github.com/roblox-csharp/index.json\" -u {usernameTextBox.Text} -p {tokenTextBox.Text} -n github");
-        StepProgress();
+        if (!sourceAlreadyAdded)
+        {
+            // add the source
+            var usernameTextBox = credentialsWindow.FindControl<TextBox>("UsernameBox")!;
+            var tokenTextBox = credentialsWindow.FindControl<TextBox>("TokenBox")!;
+            Display("Adding NuGet source for RobloxCS packages...");
+            ExecuteCommand(null, "dotnet", $"nuget add source \"{_sourceURL}\" -u {usernameTextBox.Text} -p {tokenTextBox.Text} -n {_sourceName}");
+            StepProgress();
+        }
 
         Display("Compiling...");
         ExecuteCommand("Failed to compile roblox-cs", "dotnet", "build -c Release");
         StepProgress();
 
-        Display("Successfully built roblox-cs.");
+        Display("Successfully compiled roblox-cs.");
         if (OperatingSystem.IsWindows())
         {
             UpdateEnvironmentPath(_path);
@@ -137,7 +143,7 @@ public static class Installation
         Display("Successfully added roblox-cs to your PATH.");
 
         StepProgress();
-        Display("Successfully installed roblox-cs.");
+        Display($"Successfully installed roblox-cs ({_latestTag}).");
     }
 
     private static void UpdateEnvironmentPath(string path)
@@ -216,8 +222,9 @@ public static class Installation
         };
 
         if (result.ExitCode != 0 && errorMessage != null)
+        {
             ShowErrorMessageBox($"{errorMessage}: {(!string.IsNullOrEmpty(result.StandardError) ? result.StandardError : result.StandardOutput)}");
-
+        }
         return result;
     }
 

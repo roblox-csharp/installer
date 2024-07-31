@@ -5,6 +5,7 @@ using System.Diagnostics;
 using ReactiveUI;
 using Avalonia.Threading;
 using MessageBox.Avalonia;
+using System.Threading.Tasks;
 
 namespace Installer.ViewModels;
 
@@ -85,7 +86,7 @@ public class MainWindowViewModel : ReactiveObject
         return defaultDirectory;
     }
 
-    private async void InstallRbxcs()
+    private void InstallRbxcs()
     {
         ProgressBarVisible = true;
         IsNotInstalling = false;
@@ -95,33 +96,35 @@ public class MainWindowViewModel : ReactiveObject
         string fullSelectedDir = Path.GetFullPath(_selectedDirectory);
         string absolutePath = Path.Combine(fullSelectedDir, "roblox-cs");
 
-        try
+        Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            await Installation.InstallRbxcs(
-              UpdateProgress,
-              UpdateTitle,
-              MarkErrored,
-              absolutePath
-            );
-        }
-        catch (Exception err)
-        {
-            MarkErrored();
-            UpdateTitle("Error!");
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            try
             {
-                MessageBoxManager
-            .GetMessageBoxStandardWindow("Error", err.Message)
-            .Show()
-            .ContinueWith(_ => Environment.Exit(1));
-            });
-        }
+                await Installation.InstallRbxcs(
+                  UpdateProgress,
+                  UpdateTitle,
+                  MarkErrored,
+                  absolutePath
+                );
+            }
+            catch (Exception err)
+            {
+                MarkErrored();
+                UpdateTitle("Error!");
 
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    MessageBoxManager
+                        .GetMessageBoxStandardWindow("Error", err.Message)
+                        .Show()
+                        .ContinueWith(_ => Environment.Exit(1));
+                });
+            }
 
-        ProgressBarVisible = false;
-        if (_errored) return;
-        FinishedCloseVisible = true;
+            ProgressBarVisible = false;
+            if (_errored) return;
+            FinishedCloseVisible = true;
+        });
     }
 
     private async void SuccessfulExit()
